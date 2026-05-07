@@ -46,6 +46,7 @@ module.exports = {
     "mdx",
     "OAI",
     "Orama",
+    "orama",
     "Perplexity",
     "pnpm",
     "releaserc",

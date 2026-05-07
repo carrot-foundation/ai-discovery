@@ -3,3 +3,7 @@ export * as jsonld from "./jsonld/index.js";
 export * as robots from "./robots/index.js";
 export * as llmsTxt from "./llms-txt/index.js";
 export * as mdMirror from "./md-mirror/index.js";
+export * as mcpServer from "./mcp-server/index.js";
+export * as orama from "./orama/index.js";
+export * as indexNow from "./index-now/index.js";
+export * as glossary from "./glossary/index.js";
