@@ -48,4 +48,12 @@ describe("schemaId", () => {
     expect(a).toBe(b);
     expect(a.startsWith("https://carrot.eco/#org-")).toBe(true);
   });
+
+  it("normalizes and encodes the @id kind fragment", () => {
+    const id = schemaId("https://carrot.eco/", " blog post ");
+    expect(id.startsWith("https://carrot.eco/#blog%20post-")).toBe(true);
+    expect(() => schemaId("https://carrot.eco", "   ")).toThrow(
+      "kind must be non-empty",
+    );
+  });
 });

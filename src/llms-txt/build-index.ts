@@ -24,11 +24,11 @@ const formatSection = (s: IndexSection): string =>
 
 export const buildIndex = (input: IndexInput): string => {
   const lines: string[] = [];
-  lines.push(`# ${input.site.name}`);
+  lines.push(`# ${escapeMarkdown(input.site.name)}`);
   lines.push("");
-  lines.push(`> ${input.site.tagline}`);
+  lines.push(`> ${escapeMarkdown(input.site.tagline)}`);
   lines.push("");
-  lines.push(input.site.url);
+  lines.push(formatUrl(input.site.url));
   lines.push("");
   for (const section of input.sections) {
     lines.push(formatSection(section));

@@ -56,6 +56,9 @@ describe("buildIndex", () => {
       ],
     });
 
+    expect(out).toContain("# Carrot Documentation");
+    expect(out).toContain("> The reference for the Carrot Network.");
+    expect(out).toContain("<https://docs.carrot.eco>");
     expect(out).toContain("## Concepts \\[AI\\]");
     expect(out).toContain(
       "- [TRC \\[core\\]](<https://docs.carrot.eco/search?q={query}>): Line one Line \\[two\\]",

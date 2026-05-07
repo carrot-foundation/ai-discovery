@@ -41,9 +41,14 @@ export const schemaId = (
   kind: string,
   payload?: string,
 ): string => {
+  const normalizedKind = kind.trim();
+  if (normalizedKind.length === 0) {
+    throw new Error("kind must be non-empty");
+  }
+
   const hash = createHash("sha1")
-    .update(`${kind}:${payload ?? ""}`)
+    .update(`${normalizedKind}:${payload ?? ""}`)
     .digest("hex")
     .slice(0, 8);
-  return `${siteOrigin.replace(/\/$/u, "")}/#${kind}-${hash}`;
+  return `${siteOrigin.replace(/\/$/u, "")}/#${encodeURIComponent(normalizedKind)}-${hash}`;
 };
