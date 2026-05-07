@@ -43,6 +43,8 @@ module.exports = {
     "IndexNow",
     "jsonld",
     "llms",
+    "MassID",
+    "massid",
     "mdx",
     "OAI",
     "Orama",
