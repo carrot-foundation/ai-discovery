@@ -58,6 +58,46 @@
         "types": "./dist/md-mirror/index.d.cts",
         "default": "./dist/md-mirror/index.cjs"
       }
+    },
+    "./mcp-server": {
+      "import": {
+        "types": "./dist/mcp-server/index.d.ts",
+        "default": "./dist/mcp-server/index.js"
+      },
+      "require": {
+        "types": "./dist/mcp-server/index.d.cts",
+        "default": "./dist/mcp-server/index.cjs"
+      }
+    },
+    "./orama": {
+      "import": {
+        "types": "./dist/orama/index.d.ts",
+        "default": "./dist/orama/index.js"
+      },
+      "require": {
+        "types": "./dist/orama/index.d.cts",
+        "default": "./dist/orama/index.cjs"
+      }
+    },
+    "./index-now": {
+      "import": {
+        "types": "./dist/index-now/index.d.ts",
+        "default": "./dist/index-now/index.js"
+      },
+      "require": {
+        "types": "./dist/index-now/index.d.cts",
+        "default": "./dist/index-now/index.cjs"
+      }
+    },
+    "./glossary": {
+      "import": {
+        "types": "./dist/glossary/index.d.ts",
+        "default": "./dist/glossary/index.js"
+      },
+      "require": {
+        "types": "./dist/glossary/index.d.cts",
+        "default": "./dist/glossary/index.cjs"
+      }
     }
   },
   "files": [
@@ -105,6 +145,8 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@orama/orama": "^3.1.18",
     "zod": "^4.4.3"
   },
   "devDependencies": {
