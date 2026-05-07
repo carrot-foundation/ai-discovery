@@ -52,9 +52,22 @@ export function createRateLimiter(options: RateLimiterOptions): RateLimiter {
   }
 
   const states = new Map<string, RateLimitState>();
+  let nextCleanupAt = 0;
+
+  function cleanupExpiredStates(timestamp: number): void {
+    if (timestamp < nextCleanupAt) return;
+    nextCleanupAt = timestamp + windowMs;
+
+    for (const [key, state] of states) {
+      if (state.active === 0 && timestamp >= state.resetAt) {
+        states.delete(key);
+      }
+    }
+  }
 
   function getState(key: string): RateLimitState {
     const timestamp = now();
+    cleanupExpiredStates(timestamp);
     const current = states.get(key);
 
     if (!current) {

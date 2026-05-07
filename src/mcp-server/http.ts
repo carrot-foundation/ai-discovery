@@ -82,7 +82,20 @@ export function createMcpHttpHandler<
       const transport = createTransport(options);
       const server = await options.createServer();
       await server.connect(transport);
-      const response = await transport.handleRequest(request);
+      let response: Response;
+      try {
+        response = await transport.handleRequest(request);
+      } catch (error) {
+        await emitTelemetryIfEnabled(
+          options,
+          request,
+          new Response(null, { status: 500 }),
+          start,
+          rateLimit,
+          context,
+        );
+        throw error;
+      }
       await emitTelemetryIfEnabled(
         options,
         request,

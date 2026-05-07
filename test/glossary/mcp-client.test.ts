@@ -33,7 +33,18 @@ describe("docs glossary MCP client", () => {
     });
 
     const result = await getGlossaryTerm(client, { term: "TRC", locale: "en" });
-    const headers = new Headers(requests[0]?.init?.headers);
+    expect(requests).toHaveLength(1);
+    const firstRequest = requests[0];
+    if (firstRequest === undefined) {
+      throw new Error("Expected one captured request");
+    }
+    if (firstRequest.init === undefined) {
+      throw new Error("Expected captured request init");
+    }
+    if (firstRequest.init.body === undefined) {
+      throw new Error("Expected captured request body");
+    }
+    const headers = new Headers(firstRequest.init.headers);
 
     expect(result).toMatchObject({
       ok: true,
@@ -43,7 +54,7 @@ describe("docs glossary MCP client", () => {
       url: "https://docs.carrot.eco/docs/glossary/trc",
     });
     expect(headers.has("authorization")).toBe(false);
-    expect(JSON.parse(String(requests[0]?.init?.body))).toEqual({
+    expect(JSON.parse(String(firstRequest.init.body))).toEqual({
       jsonrpc: "2.0",
       id: "get_glossary_term:en:trc",
       method: "tools/call",

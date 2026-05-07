@@ -219,8 +219,40 @@ describe("createMcpHttpHandler", () => {
       }),
     );
 
-    expect(events[0]).not.toHaveProperty("method");
-    expect(events[0]).not.toHaveProperty("toolName");
+    expect(events).toHaveLength(1);
+    const event = events[0];
+    if (event === undefined) {
+      throw new Error("Expected one telemetry event");
+    }
+    expect(event).not.toHaveProperty("method");
+    expect(event).not.toHaveProperty("toolName");
+  });
+
+  it("emits telemetry when the transport throws", async () => {
+    const events: McpHttpTelemetryEvent[] = [];
+    const handler = createMcpHttpHandler(
+      baseOptions({
+        isTelemetryEnabled: () => true,
+        emitTelemetry: (event) => events.push(event),
+        transportFactory: () => ({
+          handleRequest: async () => {
+            throw new Error("Transport failed");
+          },
+        }),
+      }),
+    );
+
+    await expect(
+      handler(mcpRequest({ jsonrpc: "2.0", id: 1, method: "tools/list" })),
+    ).rejects.toThrow("Transport failed");
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      method: "tools/list",
+      status: 500,
+      clientFamily: "known-ai-client",
+      rateLimit: { allowed: true },
+    });
   });
 
   it("skips telemetry when host gating disables it", async () => {

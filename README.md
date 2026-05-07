@@ -261,10 +261,15 @@ const urls = [
   "https://www.carrot.eco/en/blog/massid",
 ];
 
+const indexNowKey = process.env.INDEXNOW_KEY;
+if (!indexNowKey) {
+  throw new Error("INDEXNOW_KEY is required");
+}
+
 for (const batch of chunkIndexNowUrls(urls)) {
   const result = await submitIndexNowUrls({
     host: "www.carrot.eco",
-    key: process.env.INDEXNOW_KEY ?? "",
+    key: indexNowKey,
     keyLocation: "https://www.carrot.eco/indexnow-key.txt",
     urls: batch,
     fetch,
@@ -276,6 +281,7 @@ for (const batch of chunkIndexNowUrls(urls)) {
 
 `normalizeIndexNowUrls()` keeps only unique HTTPS URLs under the configured host.
 Non-2xx responses return typed failures without including raw response bodies.
+Set `INDEXNOW_KEY` before calling `submitIndexNowUrls()`.
 
 ### Query the public docs glossary MCP
 

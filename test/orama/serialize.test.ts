@@ -22,7 +22,12 @@ describe("search index serialization", () => {
     const restored = deserializeSearchIndex(serializeSearchIndex(index));
     const results = await searchIndex(restored, { query: "traceability" });
 
-    expect(results[0]).toMatchObject({
+    expect(results).toHaveLength(1);
+    const firstResult = results[0];
+    if (firstResult === undefined) {
+      throw new Error("Expected one search result");
+    }
+    expect(firstResult).toMatchObject({
       id: "en/blog/a",
       title: "MassID launch",
       url: "https://www.carrot.eco/en/blog/a",
