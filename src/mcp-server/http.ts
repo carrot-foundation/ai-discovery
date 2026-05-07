@@ -58,10 +58,6 @@ export function createMcpHttpHandler<
 ): (request: Request) => Promise<Response> {
   return async (request) => {
     const start = performance.now();
-    const context = await parseTelemetryContext(
-      request,
-      options.toolNameAllowlist,
-    );
     const rateKey = options.getRateLimitKey(request);
     const rateLimit = options.rateLimiter.acquire(rateKey);
 
@@ -73,10 +69,15 @@ export function createMcpHttpHandler<
         response,
         start,
         rateLimit,
-        context,
+        {},
       );
       return response;
     }
+
+    const context = await parseTelemetryContext(
+      request,
+      options.toolNameAllowlist,
+    );
 
     try {
       const transport = createTransport(options);
@@ -202,7 +203,11 @@ async function emitTelemetryIfEnabled<TToolName extends string>(
   );
   if (clientFamily !== undefined) event.clientFamily = clientFamily;
 
-  await options.emitTelemetry(event);
+  try {
+    await options.emitTelemetry(event);
+  } catch {
+    // Telemetry is observability only; never let it change request behavior.
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

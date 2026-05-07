@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createMcpHttpHandler } from "../../src/mcp-server/http.js";
 import { createRateLimiter } from "../../src/mcp-server/rate-limit.js";
 import type { McpHttpTelemetryEvent } from "../../src/mcp-server/http.js";
@@ -167,6 +167,27 @@ describe("createMcpHttpHandler", () => {
     await firstResponse;
   });
 
+  it("does not parse denied request bodies before rate limiting", async () => {
+    const handler = createMcpHttpHandler(
+      baseOptions({
+        rateLimiter: createRateLimiter({ maxRequests: 1, windowMs: 1_000 }),
+      }),
+    );
+
+    await handler(mcpRequest({ jsonrpc: "2.0", id: 1, method: "tools/list" }));
+    const deniedRequest = mcpRequest({
+      jsonrpc: "2.0",
+      id: 2,
+      method: "tools/list",
+    });
+    const clone = vi.spyOn(deniedRequest, "clone");
+
+    const response = await handler(deniedRequest);
+
+    expect(response.status).toBe(429);
+    expect(clone).not.toHaveBeenCalled();
+  });
+
   it("emits only sanitized telemetry fields when enabled", async () => {
     const events: McpHttpTelemetryEvent[] = [];
     const handler = createMcpHttpHandler(
@@ -253,6 +274,23 @@ describe("createMcpHttpHandler", () => {
       clientFamily: "known-ai-client",
       rateLimit: { allowed: true },
     });
+  });
+
+  it("keeps telemetry emission failures best-effort", async () => {
+    const handler = createMcpHttpHandler(
+      baseOptions({
+        isTelemetryEnabled: () => true,
+        emitTelemetry: () => {
+          throw new Error("Telemetry failed");
+        },
+      }),
+    );
+
+    const response = await handler(
+      mcpRequest({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+    );
+
+    expect(response.status).toBe(200);
   });
 
   it("skips telemetry when host gating disables it", async () => {
