@@ -4,4 +4,4 @@ AI discovery primitives for the Carrot Network: JSON-LD, llms.txt, markdown mirr
 
 ## Status
 
-This package is under Phase 0 review. Do not publish it until Cristiano has reviewed the package PR and tarball.
+This package is under Phase 0 review. Release-triggering merges to `main` publish automatically after CI succeeds, so only merge them after Cristiano has reviewed the package PR and tarball.

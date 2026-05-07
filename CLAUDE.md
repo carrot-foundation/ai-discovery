@@ -4,7 +4,7 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 
 ## Repo
 
-`@carrot-foundation/ai-discovery` — public npm package providing AI/LLM discovery primitives (JSON-LD, llms.txt, robots, Markdown mirror) for the Carrot Network. Phase 0: do not publish until the package PR and tarball are reviewed.
+`@carrot-foundation/ai-discovery` — public npm package providing AI/LLM discovery primitives (JSON-LD, llms.txt, robots, Markdown mirror) for the Carrot Network. Phase 0: only merge release-triggering changes after the package PR and tarball are reviewed; release-triggering merges to `main` publish automatically after CI succeeds.
 
 Independent repo (not part of Carrot Nx/Turbo monorepos). Node `>=22` (`.nvmrc` 24.13.1), pnpm 10.29.3, ESM-first with CJS dual output. Apache-2.0.
 
@@ -72,7 +72,7 @@ Conventions:
 
 ## Release
 
-Semantic-release on `main` via the manual `release` workflow (`workflow_dispatch`, see `.releaserc.json`). Conventional Commits drive versions. `@semantic-release/npm` writes a tarball to `dist-tarball/` and publishes via npm trusted publishing (id-token). Do not bump `version` manually — it stays `0.0.0-development`.
+Semantic-release runs on `main` via `.github/workflows/release.yml` after the `Check Code` workflow succeeds for a `main` push. Manual `workflow_dispatch` is kept only as a recovery path. Conventional Commits drive versions. `@semantic-release/npm` writes a tarball to `dist-tarball/`; `@semantic-release/github` uploads that tarball to the GitHub release; npm publishing uses trusted publishing (id-token). Do not bump `version` manually — it stays `0.0.0-development`.
 
 ## Commits
 
