@@ -53,6 +53,40 @@ describe("submitIndexNowUrls", () => {
     });
   });
 
+  it("omits keyLocation when it is not configured", async () => {
+    const requests: Array<{ url: string; init: RequestInit | undefined }> = [];
+
+    await submitIndexNowUrls({
+      host: "www.carrot.eco",
+      key: "test-key",
+      urls: ["https://www.carrot.eco/en/blog/a"],
+      fetch: async (url, init) => {
+        requests.push({ url: String(url), init });
+        return new Response(null, { status: 202 });
+      },
+    });
+
+    expect(requests).toHaveLength(1);
+    const request = requests[0];
+    if (request === undefined) {
+      throw new Error("Expected one IndexNow request");
+    }
+    if (request.init?.body === undefined) {
+      throw new Error("Expected IndexNow request body");
+    }
+
+    const payload = JSON.parse(String(request.init.body)) as Record<
+      string,
+      unknown
+    >;
+    expect(payload).toEqual({
+      host: "www.carrot.eco",
+      key: "test-key",
+      urlList: ["https://www.carrot.eco/en/blog/a"],
+    });
+    expect(payload).not.toHaveProperty("keyLocation");
+  });
+
   it("treats 200 as success", async () => {
     const result = await submitIndexNowUrls({
       host: "www.carrot.eco",

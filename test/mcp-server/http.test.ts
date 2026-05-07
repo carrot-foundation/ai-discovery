@@ -210,16 +210,20 @@ describe("createMcpHttpHandler", () => {
     );
 
     expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({
+    const event = events[0];
+    if (event === undefined) {
+      throw new Error("Expected one telemetry event");
+    }
+    expect(event).toMatchObject({
       method: "tools/call",
       toolName: "search_docs",
       status: 200,
       clientFamily: "known-ai-client",
       rateLimit: { allowed: true },
     });
-    expect(JSON.stringify(events[0])).not.toContain("secret prompt");
-    expect(JSON.stringify(events[0])).not.toContain("raw-ip-derived-key");
-    expect(JSON.stringify(events[0])).not.toContain("raw-user-agent");
+    expect(JSON.stringify(event)).not.toContain("secret prompt");
+    expect(JSON.stringify(event)).not.toContain("raw-ip-derived-key");
+    expect(JSON.stringify(event)).not.toContain("raw-user-agent");
   });
 
   it("drops unknown method and tool names from telemetry", async () => {
@@ -268,7 +272,11 @@ describe("createMcpHttpHandler", () => {
     ).rejects.toThrow("Transport failed");
 
     expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({
+    const event = events[0];
+    if (event === undefined) {
+      throw new Error("Expected one telemetry event");
+    }
+    expect(event).toMatchObject({
       method: "tools/list",
       status: 500,
       clientFamily: "known-ai-client",

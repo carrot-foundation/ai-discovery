@@ -30,17 +30,20 @@ export async function submitIndexNowUrls(
 ): Promise<IndexNowSubmitResult> {
   const submittedUrls = normalizeIndexNowUrls(options.urls, options.host);
   const endpoint = options.endpoint ?? DEFAULT_INDEX_NOW_ENDPOINT;
+  const payload = {
+    host: options.host,
+    key: options.key,
+    urlList: submittedUrls,
+    ...(options.keyLocation !== undefined
+      ? { keyLocation: options.keyLocation }
+      : {}),
+  };
 
   try {
     const response = await options.fetch(endpoint, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        host: options.host,
-        key: options.key,
-        keyLocation: options.keyLocation,
-        urlList: submittedUrls,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (response.status === 200 || response.status === 202) {

@@ -6,7 +6,7 @@ export type IndexNowFetch = (
 export interface SubmitIndexNowUrlsOptions {
   readonly host: string;
   readonly key: string;
-  readonly keyLocation: string;
+  readonly keyLocation?: string;
   readonly urls: readonly string[];
   readonly fetch: IndexNowFetch;
   readonly endpoint?: string;
