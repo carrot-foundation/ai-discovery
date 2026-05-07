@@ -89,45 +89,58 @@
   "scripts": {
     "build": "tsup",
     "clean": "rm -rf dist",
-    "check": "run-s lint:fix format type-check spell-check test build",
+    "check": "run-s format:check lint type-check spell-check test build check-types-exports pack:dry-run audit:prod",
+    "check-types-exports": "npm_config_cache=.cache/npm attw --pack . --profile node16",
+    "fix": "run-s lint:fix format",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "eslint . --cache",
-    "lint:fix": "eslint . --fix --cache",
+    "lint": "eslint . --cache --cache-location .cache/eslint/",
+    "lint:fix": "eslint . --fix --cache --cache-location .cache/eslint/",
+    "pack:dry-run": "pnpm pack --dry-run",
     "prepare": "husky",
     "release": "semantic-release",
-    "spell-check": "cspell --dot \"**/*.{ts,md,json}\"",
+    "audit:prod": "pnpm audit --prod --audit-level=critical",
+    "spell-check": "cspell lint --dot --no-must-find-files \"**/*.{ts,js,cjs,mjs,md,json,yml,yaml}\"",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "zod": "3.23.8"
+    "zod": "4.4.3"
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "0.16.4",
-    "@commitlint/cli": "19.5.0",
-    "@commitlint/config-conventional": "19.5.0",
-    "@eslint/js": "9.13.0",
+    "@arethetypeswrong/cli": "0.18.2",
+    "@commitlint/cli": "20.5.3",
+    "@commitlint/config-conventional": "20.5.3",
+    "@eslint/js": "10.0.1",
     "@semantic-release/changelog": "6.0.3",
     "@semantic-release/commit-analyzer": "13.0.1",
     "@semantic-release/git": "10.0.1",
     "@semantic-release/github": "12.0.6",
     "@semantic-release/npm": "13.1.5",
     "@semantic-release/release-notes-generator": "14.1.0",
-    "@types/node": "24.0.0",
-    "cspell": "9.7.0",
-    "eslint": "9.13.0",
-    "globals": "15.11.0",
-    "husky": "9.1.6",
-    "jiti": "2.6.1",
-    "lint-staged": "15.2.10",
-    "npm-run-all2": "7.0.1",
-    "prettier": "3.3.3",
-    "semantic-release": "24.1.2",
-    "tsup": "8.3.0",
-    "typescript": "5.6.3",
-    "typescript-eslint": "8.11.0",
-    "vitest": "2.1.3"
+    "@types/node": "25.6.0",
+    "cspell": "10.0.0",
+    "eslint": "10.3.0",
+    "globals": "17.6.0",
+    "husky": "9.1.7",
+    "jiti": "2.7.0",
+    "lint-staged": "17.0.2",
+    "npm-run-all2": "8.0.4",
+    "prettier": "3.8.3",
+    "semantic-release": "25.0.3",
+    "tsup": "8.5.1",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.59.2",
+    "vite": "8.0.11",
+    "vitest": "4.1.5"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

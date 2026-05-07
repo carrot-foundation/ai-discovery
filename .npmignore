@@ -10,6 +10,7 @@ tsconfig.json
 tsup.config.ts
 vitest.config.ts
 eslint.config.ts
+eslint.config.js
 cspell.config.cjs
 commitlint.config.js
 lint-staged.config.js

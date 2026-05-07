@@ -1,23 +1,27 @@
-Carrot Foundation — Public Schema Reference
+Carrot Foundation — AI Discovery Primitives
 
-These JSON Schemas are published by the Carrot Foundation to support validation, traceability, and interoperability across the Carrot ecosystem.
+This package provides public AI-discovery primitives for the Carrot Network,
+including JSON-LD builders, robots.txt helpers, llms.txt generators, and
+machine-readable markdown route helpers.
 
-They are intended for public reference only.
+The package is intended for public integration by Carrot-maintained sites and
+compatible ecosystem tooling.
 
 You may:
 
-- Reference these schemas in metadata via `$id`
-- Use them for validation or formatting of Carrot-compatible data
-- Link to them from applications, dashboards, or traceability tools
+- Use the exported builders to generate AI-friendly metadata and text surfaces
+- Link to the package from Carrot-compatible documentation and applications
+- Extend your own applications with the package under the Apache License 2.0
 
 You may not:
 
-- Modify or fork these schemas for use in other ecosystems
-- Publish derivative schemas that reference or imply affiliation with Carrot
-- Use Carrot's names, trademarks, or formatting in unrelated projects
+- Use Carrot's names, trademarks, or formatting in unrelated projects in a way
+  that implies endorsement or affiliation
+- Publish derivative packages that imply official Carrot Foundation ownership
+  without permission
 
-All schemas are provided "as is" under the Apache License 2.0.  
-No warranty is provided, and Carrot reserves the right to update or deprecate any schema at any time.
+This package is provided "as is" under the Apache License 2.0.
+No warranty is provided, and Carrot may update or deprecate APIs over time.
 
-For official documentation and ecosystem usage, visit:  
+For official documentation and ecosystem usage, visit:
 https://carrot.eco
