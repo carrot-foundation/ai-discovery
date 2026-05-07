@@ -12,8 +12,9 @@ This is an independent repo, not part of the Carrot Nx or Turbo monorepos. Use
 Node `>=22` (`.nvmrc` currently points at 24.13.1), pnpm 10.29.3, and the
 ESM-first package layout with CJS dual output. The package is Apache-2.0.
 
-Phase 0 status: do not publish until Cristiano has reviewed the package PR and
-tarball.
+Phase 0 status: only merge release-triggering changes after Cristiano has
+reviewed the package PR and tarball. Release-triggering merges to `main`
+publish automatically after CI succeeds.
 
 ## Commands
 
@@ -97,10 +98,11 @@ The repo uses strict TypeScript with `noUncheckedIndexedAccess`,
 
 ## Release
 
-Semantic-release runs on `main` through the manual `release` workflow. Do not
-bump `version` manually; it stays `0.0.0-development`. The release workflow
-writes a tarball to `dist-tarball/` and publishes through npm trusted
-publishing.
+Semantic-release runs on `main` through `.github/workflows/release.yml` after
+the `Check Code` workflow succeeds for a `main` push. Manual `workflow_dispatch`
+is kept only as a recovery path. Do not bump `version` manually; it stays
+`0.0.0-development`. The release workflow writes a tarball to `dist-tarball/`,
+uploads it to the GitHub release, and publishes through npm trusted publishing.
 
 ## Commits
 
