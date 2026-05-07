@@ -4,6 +4,5 @@ coverage/
 dist-tarball/
 .cache/
 .eslintcache
-CLAUDE.md
 *.log
 *.tsbuildinfo
