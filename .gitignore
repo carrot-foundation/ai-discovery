@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+dist-tarball/
+.cache/
+.eslintcache
+*.log
+*.tsbuildinfo

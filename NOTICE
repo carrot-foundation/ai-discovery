@@ -1,0 +1,18 @@
+Carrot Foundation — AI Discovery Primitives
+
+This package provides public AI-discovery primitives for the Carrot Network,
+including JSON-LD builders, robots.txt helpers, llms.txt generators, and
+machine-readable markdown route helpers.
+
+The package is intended for public integration by Carrot-maintained sites and
+compatible ecosystem tooling.
+
+This package is licensed under the Apache License 2.0.
+Use of Carrot Foundation names and marks is subject to trademark and brand
+policy, and does not imply endorsement.
+
+This package is provided "as is".
+No warranty is provided, and Carrot may update or deprecate APIs over time.
+
+For official documentation and ecosystem usage, visit:
+https://carrot.eco
