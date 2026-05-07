@@ -23,24 +23,40 @@ const baseSchema = z.object({
   image: url,
 });
 
+const blogPostingSchema = baseSchema.extend({
+  type: z.literal("blog-posting"),
+});
+const articleSchema = baseSchema.extend({ type: z.literal("article") });
+const techArticleSchema = baseSchema.extend({
+  type: z.literal("tech-article"),
+});
+const howToSchema = baseSchema.extend({
+  type: z.literal("how-to"),
+  steps: z.array(stepSchema).min(1),
+});
+
 const discriminatedArticleSchema = z.discriminatedUnion("type", [
-  baseSchema.extend({ type: z.literal("blog-posting") }),
-  baseSchema.extend({ type: z.literal("article") }),
-  baseSchema.extend({ type: z.literal("tech-article") }),
-  baseSchema.extend({
-    type: z.literal("how-to"),
-    steps: z.array(stepSchema).min(1),
-  }),
+  blogPostingSchema,
+  articleSchema,
+  techArticleSchema,
+  howToSchema,
 ]);
 
-const articleSchema = z.preprocess((input) => {
+type BlogPostingInput = z.input<typeof blogPostingSchema>;
+type BlogPostingInputWithDefault = Omit<BlogPostingInput, "type"> & {
+  readonly type?: undefined;
+};
+
+export type ArticleInput =
+  | z.input<typeof discriminatedArticleSchema>
+  | BlogPostingInputWithDefault;
+
+const withDefaultArticleType = (input: unknown): unknown => {
   if (typeof input !== "object" || input === null || Array.isArray(input))
     return input;
   if ("type" in input) return input;
   return { ...input, type: "blog-posting" };
-}, discriminatedArticleSchema);
-
-export type ArticleInput = z.input<typeof articleSchema>;
+};
 
 const TYPE_MAP = {
   "blog-posting": "BlogPosting",
@@ -50,7 +66,9 @@ const TYPE_MAP = {
 } as const;
 
 export const article = (input: ArticleInput): Record<string, unknown> => {
-  const parsed = articleSchema.parse(input);
+  const parsed = discriminatedArticleSchema.parse(
+    withDefaultArticleType(input),
+  );
   const node: Record<string, unknown> = {
     "@type": TYPE_MAP[parsed.type],
     "@id": parsed.url,

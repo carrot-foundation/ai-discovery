@@ -27,4 +27,16 @@ describe("website", () => {
     });
     expect(node.potentialAction).toBeUndefined();
   });
+
+  it("rejects search URL templates without the query placeholder", () => {
+    expect(() =>
+      website({
+        name: "Carrot Documentation",
+        url: "https://docs.carrot.eco",
+        searchUrlTemplate:
+          "https://docs.carrot.eco/api/search?q={search_term_string}",
+        inLanguage: ["en"],
+      }),
+    ).toThrow();
+  });
 });

@@ -6,7 +6,23 @@ export const isoDate = z
   .regex(
     /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?)?$/u,
     "must be ISO-8601",
-  );
+  )
+  .refine((value) => {
+    const dateMatch = /^(\d{4})-(\d{2})-(\d{2})/u.exec(value);
+    if (dateMatch === null) return false;
+
+    const year = Number(dateMatch[1]);
+    const month = Number(dateMatch[2]);
+    const day = Number(dateMatch[3]);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    const isSameCalendarDay =
+      date.getUTCFullYear() === year &&
+      date.getUTCMonth() === month - 1 &&
+      date.getUTCDate() === day;
+
+    if (!isSameCalendarDay) return false;
+    return !value.includes("T") || Number.isFinite(Date.parse(value));
+  }, "must be a valid ISO-8601 date");
 
 export const url = z
   .string()

@@ -13,6 +13,11 @@ describe("isoDate", () => {
   it("rejects non-ISO strings", () => {
     expect(() => isoDate.parse("not-a-date")).toThrow();
   });
+
+  it("rejects impossible calendar dates", () => {
+    expect(() => isoDate.parse("2026-02-31")).toThrow();
+    expect(() => isoDate.parse("2026-13-01")).toThrow();
+  });
 });
 
 describe("url", () => {

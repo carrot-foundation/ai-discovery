@@ -5,7 +5,12 @@ const inputSchema = z.object({
   name: z.string().min(1),
   url,
   inLanguage: z.array(language).min(1),
-  searchUrlTemplate: z.string().optional(),
+  searchUrlTemplate: z
+    .string()
+    .includes("{query}", {
+      message: 'searchUrlTemplate must contain the placeholder "{query}"',
+    })
+    .optional(),
 });
 
 export type WebSiteInput = z.input<typeof inputSchema>;

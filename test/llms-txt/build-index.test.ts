@@ -31,7 +31,34 @@ describe("buildIndex", () => {
     expect(out).toContain("> The reference for the Carrot Network.");
     expect(out).toContain("## Concepts");
     expect(out).toContain(
-      "- [TRC](https://docs.carrot.eco/en/docs/concepts/trc): A Tonne of Recycled CO2.",
+      "- [TRC](<https://docs.carrot.eco/en/docs/concepts/trc>): A Tonne of Recycled CO2.",
+    );
+  });
+
+  it("escapes markdown-sensitive link and section text", () => {
+    const out = buildIndex({
+      site: {
+        name: "Carrot Documentation",
+        url: "https://docs.carrot.eco",
+        tagline: "The reference for the Carrot Network.",
+      },
+      sections: [
+        {
+          title: "Concepts [AI]",
+          urls: [
+            {
+              title: "TRC [core]",
+              url: "https://docs.carrot.eco/search?q={query}",
+              description: "Line one\nLine [two]",
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(out).toContain("## Concepts \\[AI\\]");
+    expect(out).toContain(
+      "- [TRC \\[core\\]](<https://docs.carrot.eco/search?q={query}>): Line one Line \\[two\\]",
     );
   });
 });

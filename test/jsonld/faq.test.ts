@@ -23,4 +23,9 @@ describe("faqPage", () => {
   it("rejects empty FAQ", () => {
     expect(() => faqPage([])).toThrow();
   });
+
+  it("rejects whitespace-only question and answer values", () => {
+    expect(() => faqPage([{ question: "   ", answer: "Text" }])).toThrow();
+    expect(() => faqPage([{ question: "Question?", answer: "   " }])).toThrow();
+  });
 });

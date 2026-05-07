@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const inputSchema = z.object({
-  cssSelectors: z.array(z.string().min(1)).min(1),
+  cssSelectors: z.array(z.string().trim().min(1)).min(1),
 });
 
 export type SpeakableInput = z.input<typeof inputSchema>;

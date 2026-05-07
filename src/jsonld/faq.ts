@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 const itemSchema = z.object({
-  question: z.string().min(1),
-  answer: z.string().min(1),
+  question: z.string().trim().min(1),
+  answer: z.string().trim().min(1),
 });
 const inputSchema = z.array(itemSchema).min(1);
 

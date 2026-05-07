@@ -17,7 +17,10 @@ export const person = (input: PersonInput): Record<string, unknown> => {
     "@type": "Person",
     name: parsed.name,
   };
-  if (parsed.url !== undefined) node.url = parsed.url;
+  if (parsed.url !== undefined) {
+    node["@id"] = parsed.url;
+    node.url = parsed.url;
+  }
   if (parsed.jobTitle !== undefined) node.jobTitle = parsed.jobTitle;
   if (parsed.affiliation !== undefined) {
     node.affiliation = { "@type": "Organization", name: parsed.affiliation };

@@ -12,5 +12,6 @@ describe("speakable", () => {
 
   it("rejects empty selectors", () => {
     expect(() => speakable({ cssSelectors: [] })).toThrow();
+    expect(() => speakable({ cssSelectors: ["   "] })).toThrow();
   });
 });

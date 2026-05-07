@@ -7,6 +7,11 @@ export interface CreateMdMirrorRouteOptions<
   TParams extends Record<string, string | string[] | undefined>,
 > {
   /**
+   * Value for the `cache-control` response header.
+   * Defaults to `public, max-age=300, s-maxage=86400`.
+   */
+  readonly cacheControl?: string;
+  /**
    * Resolve the markdown for a given URL/params, or return null when the page
    * doesn't exist (route returns 404).
    */
@@ -36,7 +41,8 @@ export const createMdMirrorRoute =
       headers: {
         "content-type": "text/markdown; charset=utf-8",
         "x-source-url": result.sourceUrl,
-        "cache-control": "public, max-age=300, s-maxage=86400",
+        "cache-control":
+          opts.cacheControl ?? "public, max-age=300, s-maxage=86400",
       },
     });
   };

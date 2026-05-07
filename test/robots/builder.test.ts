@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { AI_BOTS } from "../../src/robots/ai-bots.js";
 import { buildRobots } from "../../src/robots/builder.js";
 
 describe("buildRobots", () => {
@@ -16,7 +17,7 @@ describe("buildRobots", () => {
     expect(out).toContain("User-agent: PerplexityBot");
     expect(out).toContain("User-agent: Google-Extended");
     const allowMatches = out.match(/^Allow: \/$/gm) ?? [];
-    expect(allowMatches.length).toBeGreaterThanOrEqual(11);
+    expect(allowMatches).toHaveLength(AI_BOTS.length + 1);
   });
 
   it("still allows the universal * user-agent for ordinary search engines", () => {

@@ -11,6 +11,8 @@ describe("person", () => {
       sameAs: ["https://www.linkedin.com/in/crissantosdev"],
     });
     expect(node["@type"]).toBe("Person");
+    expect(node["@id"]).toBe("https://carrot.eco/team/cris");
+    expect(node.url).toBe("https://carrot.eco/team/cris");
     expect(node.name).toBe("Cris Santos");
     expect(node.jobTitle).toBe("Software Engineer");
     expect(node.affiliation).toMatchObject({

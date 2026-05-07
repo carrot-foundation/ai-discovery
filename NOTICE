@@ -7,20 +7,11 @@ machine-readable markdown route helpers.
 The package is intended for public integration by Carrot-maintained sites and
 compatible ecosystem tooling.
 
-You may:
+This package is licensed under the Apache License 2.0.
+Use of Carrot Foundation names and marks is subject to trademark and brand
+policy, and does not imply endorsement.
 
-- Use the exported builders to generate AI-friendly metadata and text surfaces
-- Link to the package from Carrot-compatible documentation and applications
-- Extend your own applications with the package under the Apache License 2.0
-
-You may not:
-
-- Use Carrot's names, trademarks, or formatting in unrelated projects in a way
-  that implies endorsement or affiliation
-- Publish derivative packages that imply official Carrot Foundation ownership
-  without permission
-
-This package is provided "as is" under the Apache License 2.0.
+This package is provided "as is".
 No warranty is provided, and Carrot may update or deprecate APIs over time.
 
 For official documentation and ecosystem usage, visit:

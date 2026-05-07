@@ -29,4 +29,18 @@ describe("createMdMirrorRoute", () => {
     );
     await expect(res.text()).resolves.toBe("# Hello\nWorld");
   });
+
+  it("allows callers to override cache-control", async () => {
+    const handler = createMdMirrorRoute({
+      cacheControl: "public, max-age=60",
+      load: async () => ({
+        markdown: "# Hello",
+        sourceUrl: "https://docs.carrot.eco/hello",
+      }),
+    });
+    const res = await handler(new Request("https://docs.carrot.eco/hello.md"), {
+      params: Promise.resolve({}),
+    });
+    expect(res.headers.get("cache-control")).toBe("public, max-age=60");
+  });
 });

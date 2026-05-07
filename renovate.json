@@ -6,6 +6,7 @@
   "automerge": true,
   "automergeType": "pr",
   "platformAutomerge": true,
+  "assignAutomerge": true,
   "reviewers": ["team:Developers"],
   "labels": ["dependencies"],
   "schedule": ["on tuesday and thursday"],
@@ -15,6 +16,22 @@
     "schedule": ["before 5am on the first day of the month"]
   },
   "packageRules": [
+    {
+      "description": "Catch-all: remaining devDependencies grouped together",
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "all non-major devDependencies",
+      "groupSlug": "all-devDependencies-minor-patch",
+      "matchDepTypes": ["devDependencies"],
+      "matchPackageNames": ["*"]
+    },
+    {
+      "description": "Catch-all: remaining production dependencies grouped together",
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "all non-major production dependencies",
+      "groupSlug": "all-productionDependencies-minor-patch",
+      "matchDepTypes": ["dependencies"],
+      "matchPackageNames": ["*"]
+    },
     {
       "description": "Group lint tools together",
       "matchUpdateTypes": ["minor", "patch"],
@@ -55,22 +72,6 @@
       "matchManagers": ["github-actions"],
       "matchUpdateTypes": ["minor", "patch", "digest"],
       "automerge": true
-    },
-    {
-      "description": "Catch-all: remaining devDependencies grouped together",
-      "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "all non-major devDependencies",
-      "groupSlug": "all-devDependencies-minor-patch",
-      "matchDepTypes": ["devDependencies"],
-      "matchPackageNames": ["*"]
-    },
-    {
-      "description": "Catch-all: remaining production dependencies grouped together",
-      "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "all non-major production dependencies",
-      "groupSlug": "all-productionDependencies-minor-patch",
-      "matchDepTypes": ["dependencies"],
-      "matchPackageNames": ["*"]
     }
   ],
   "major": {

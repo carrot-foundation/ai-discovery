@@ -42,7 +42,11 @@ describe("article", () => {
   });
 
   it("rejects how-to without steps", () => {
-    expect(() => article({ ...BASE, type: "how-to" })).toThrow();
+    expect(() =>
+      article({ ...BASE, type: "how-to" } as unknown as Parameters<
+        typeof article
+      >[0]),
+    ).toThrow();
   });
 
   it("embeds dateModified and inLanguage", () => {
