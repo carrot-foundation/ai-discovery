@@ -20,10 +20,19 @@ describe("docs glossary MCP client", () => {
               {
                 type: "text",
                 text: JSON.stringify({
-                  term: "TRC",
-                  locale: "en",
-                  definition: "Tonne of Recycled CO2.",
-                  url: "https://docs.carrot.eco/docs/glossary/trc",
+                  success: true,
+                  tool: "get_glossary_term",
+                  request: { term: "TRC", locale: "en" },
+                  resolution: { resolved_locale: "en" },
+                  results: {
+                    term: {
+                      name: "TRC",
+                      locale: "en",
+                      definition: "Tokenized Recycling Credit.",
+                      url: "https://docs.carrot.eco/en/docs/glossary#trc",
+                      aliases: ["tokenized recycling credit"],
+                    },
+                  },
                 }),
               },
             ],
@@ -50,8 +59,9 @@ describe("docs glossary MCP client", () => {
       ok: true,
       term: "TRC",
       locale: "en",
-      definition: "Tonne of Recycled CO2.",
-      url: "https://docs.carrot.eco/docs/glossary/trc",
+      definition: "Tokenized Recycling Credit.",
+      url: "https://docs.carrot.eco/en/docs/glossary#trc",
+      aliases: ["tokenized recycling credit"],
     });
     expect(headers.has("authorization")).toBe(false);
     expect(JSON.parse(String(firstRequest.init.body))).toEqual({
@@ -62,6 +72,74 @@ describe("docs glossary MCP client", () => {
         name: "get_glossary_term",
         arguments: { term: "TRC", locale: "en" },
       },
+    });
+  });
+
+  it("keeps parsing the legacy flat term envelope", async () => {
+    const client = createDocsGlossaryClient({
+      endpoint: "https://docs.carrot.eco/mcp",
+      fetch: async () =>
+        Response.json({
+          jsonrpc: "2.0",
+          id: 1,
+          result: {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({
+                  term: "TRC",
+                  locale: "en",
+                  definition: "Tokenized Recycling Credit.",
+                  url: "https://docs.carrot.eco/en/docs/glossary#trc",
+                }),
+              },
+            ],
+          },
+        }),
+    });
+
+    await expect(
+      getGlossaryTerm(client, { term: "TRC", locale: "en" }),
+    ).resolves.toEqual({
+      ok: true,
+      term: "TRC",
+      locale: "en",
+      definition: "Tokenized Recycling Credit.",
+      url: "https://docs.carrot.eco/en/docs/glossary#trc",
+    });
+  });
+
+  it("returns a typed invalid response when Docs MCP returns term null", async () => {
+    const client = createDocsGlossaryClient({
+      endpoint: "https://docs.carrot.eco/mcp",
+      fetch: async () =>
+        Response.json({
+          jsonrpc: "2.0",
+          id: 1,
+          result: {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({
+                  success: true,
+                  tool: "get_glossary_term",
+                  request: { term: "unknown", locale: "en" },
+                  resolution: { resolved_locale: "en" },
+                  results: { term: null },
+                }),
+              },
+            ],
+          },
+        }),
+    });
+
+    await expect(
+      getGlossaryTerm(client, { term: "unknown", locale: "en" }),
+    ).resolves.toEqual({
+      ok: false,
+      code: "invalid_response",
+      message: "Glossary term envelope did not include a term",
+      status: 200,
     });
   });
 

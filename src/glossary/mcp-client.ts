@@ -112,36 +112,76 @@ function parseTermEnvelope(text: string, status: number): GlossaryTermResult {
         status,
       );
     }
-    if (
-      typeof envelope.term !== "string" ||
-      typeof envelope.locale !== "string" ||
-      typeof envelope.definition !== "string"
-    ) {
-      return invalidResponse("Glossary term envelope was incomplete", status);
-    }
 
-    const baseResult = {
-      ok: true,
-      term: envelope.term,
-      locale: envelope.locale,
-      definition: envelope.definition,
-    } as const;
-    const url = typeof envelope.url === "string" ? envelope.url : undefined;
-    const aliases =
-      Array.isArray(envelope.aliases) &&
-      envelope.aliases.every((alias) => typeof alias === "string")
-        ? envelope.aliases
-        : undefined;
+    const shared = parseSharedDocsEnvelope(envelope, status);
+    if (shared !== null) return shared;
 
-    if (url !== undefined && aliases !== undefined) {
-      return { ...baseResult, url, aliases };
-    }
-    if (url !== undefined) return { ...baseResult, url };
-    if (aliases !== undefined) return { ...baseResult, aliases };
-    return baseResult;
+    return parseFlatTermPayload(envelope, status);
   } catch {
     return invalidResponse("Glossary term envelope was not valid JSON", status);
   }
+}
+
+function parseSharedDocsEnvelope(
+  envelope: Record<string, unknown>,
+  status: number,
+): GlossaryTermResult | null {
+  if (envelope.success !== true || !isRecord(envelope.results)) return null;
+
+  const term = envelope.results.term;
+  if (term === null) {
+    return invalidResponse(
+      "Glossary term envelope did not include a term",
+      status,
+    );
+  }
+  if (!isRecord(term)) {
+    return invalidResponse("Glossary term envelope was incomplete", status);
+  }
+
+  return parseTermPayload(term, status, "name");
+}
+
+function parseFlatTermPayload(
+  envelope: Record<string, unknown>,
+  status: number,
+): GlossaryTermResult {
+  return parseTermPayload(envelope, status, "term");
+}
+
+function parseTermPayload(
+  payload: Record<string, unknown>,
+  status: number,
+  nameField: "name" | "term",
+): GlossaryTermResult {
+  const termValue = payload[nameField];
+  if (
+    typeof termValue !== "string" ||
+    typeof payload.locale !== "string" ||
+    typeof payload.definition !== "string"
+  ) {
+    return invalidResponse("Glossary term envelope was incomplete", status);
+  }
+
+  const baseResult = {
+    ok: true,
+    term: termValue,
+    locale: payload.locale,
+    definition: payload.definition,
+  } as const;
+  const url = typeof payload.url === "string" ? payload.url : undefined;
+  const aliases =
+    Array.isArray(payload.aliases) &&
+    payload.aliases.every((alias) => typeof alias === "string")
+      ? payload.aliases
+      : undefined;
+
+  if (url !== undefined && aliases !== undefined) {
+    return { ...baseResult, url, aliases };
+  }
+  if (url !== undefined) return { ...baseResult, url };
+  if (aliases !== undefined) return { ...baseResult, aliases };
+  return baseResult;
 }
 
 function invalidResponse(message: string, status: number): GlossaryTermResult {

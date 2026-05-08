@@ -7,7 +7,7 @@ describe("definedTerm", () => {
       termCode: "TRC",
       name: "TRC",
       description: "A Tonne of Recycled CO2.",
-      url: "https://docs.carrot.eco/en/docs/glossary/trc",
+      url: "https://docs.carrot.eco/en/docs/glossary#trc",
       inDefinedTermSet: "https://docs.carrot.eco/en/docs/glossary",
     });
     expect(node["@type"]).toBe("DefinedTerm");
