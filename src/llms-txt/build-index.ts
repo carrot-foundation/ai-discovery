@@ -19,8 +19,17 @@ const formatLink = (l: IndexLink): string =>
     ? `- [${escapeMarkdown(l.title)}](${formatUrl(l.url)}): ${escapeMarkdown(l.description)}`
     : `- [${escapeMarkdown(l.title)}](${formatUrl(l.url)})`;
 
-const formatSection = (s: IndexSection): string =>
-  [`## ${escapeMarkdown(s.title)}`, "", ...s.urls.map(formatLink)].join("\n");
+const formatSection = (s: IndexSection): string => {
+  const head = `## ${escapeMarkdown(s.title)}`;
+  const links = s.urls.map(formatLink);
+  const description =
+    s.description !== undefined && s.description.trim() !== ""
+      ? escapeMarkdown(s.description)
+      : undefined;
+  return description !== undefined
+    ? [head, "", description, "", ...links].join("\n")
+    : [head, "", ...links].join("\n");
+};
 
 export const buildIndex = (input: IndexInput): string => {
   const lines: string[] = [];
