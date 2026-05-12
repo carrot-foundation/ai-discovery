@@ -6,6 +6,7 @@ export interface IndexLink {
 
 export interface IndexSection {
   readonly title: string;
+  readonly description?: string;
   readonly urls: readonly IndexLink[];
 }
 

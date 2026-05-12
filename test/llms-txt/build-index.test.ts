@@ -35,6 +35,55 @@ describe("buildIndex", () => {
     );
   });
 
+  it("renders an optional section description between heading and links", () => {
+    const out = buildIndex({
+      site: {
+        name: "Carrot Documentation",
+        url: "https://docs.carrot.eco",
+        tagline: "The reference for the Carrot Network.",
+      },
+      sections: [
+        {
+          title: "Concepts",
+          description: "Core vocabulary used across the network.",
+          urls: [
+            {
+              title: "TRC",
+              url: "https://docs.carrot.eco/en/docs/concepts/trc",
+            },
+          ],
+        },
+      ],
+    });
+    expect(out).toContain(
+      "## Concepts\n\nCore vocabulary used across the network.\n\n- [TRC](<https://docs.carrot.eco/en/docs/concepts/trc>)",
+    );
+  });
+
+  it("omits the description block when no section description is provided", () => {
+    const out = buildIndex({
+      site: {
+        name: "Carrot Documentation",
+        url: "https://docs.carrot.eco",
+        tagline: "The reference for the Carrot Network.",
+      },
+      sections: [
+        {
+          title: "Concepts",
+          urls: [
+            {
+              title: "TRC",
+              url: "https://docs.carrot.eco/en/docs/concepts/trc",
+            },
+          ],
+        },
+      ],
+    });
+    expect(out).toContain(
+      "## Concepts\n\n- [TRC](<https://docs.carrot.eco/en/docs/concepts/trc>)",
+    );
+  });
+
   it("escapes markdown-sensitive link and section text", () => {
     const out = buildIndex({
       site: {
@@ -45,6 +94,7 @@ describe("buildIndex", () => {
       sections: [
         {
           title: "Concepts [AI]",
+          description: "Notes *with* _markdown_ [chars]",
           urls: [
             {
               title: "TRC [core]",
@@ -60,8 +110,35 @@ describe("buildIndex", () => {
     expect(out).toContain("> The reference for the Carrot Network.");
     expect(out).toContain("<https://docs.carrot.eco>");
     expect(out).toContain("## Concepts \\[AI\\]");
+    expect(out).toContain("Notes \\*with\\* \\_markdown\\_ \\[chars\\]");
     expect(out).toContain(
       "- [TRC \\[core\\]](<https://docs.carrot.eco/search?q={query}>): Line one Line \\[two\\]",
     );
+  });
+
+  it("treats an empty or whitespace-only description as absent", () => {
+    const out = buildIndex({
+      site: {
+        name: "Carrot Documentation",
+        url: "https://docs.carrot.eco",
+        tagline: "The reference for the Carrot Network.",
+      },
+      sections: [
+        {
+          title: "Concepts",
+          description: "   ",
+          urls: [
+            {
+              title: "TRC",
+              url: "https://docs.carrot.eco/en/docs/concepts/trc",
+            },
+          ],
+        },
+      ],
+    });
+    expect(out).toContain(
+      "## Concepts\n\n- [TRC](<https://docs.carrot.eco/en/docs/concepts/trc>)",
+    );
+    expect(out).not.toMatch(/## Concepts\n\n\n/u);
   });
 });
