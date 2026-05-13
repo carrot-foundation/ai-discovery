@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { isoDate, language, schemaId, url } from "../../src/jsonld/types.js";
+import {
+  isoDate,
+  isoDuration,
+  language,
+  schemaId,
+  url,
+} from "../../src/jsonld/types.js";
 
 describe("isoDate", () => {
   it("accepts a valid ISO-8601 date", () => {
@@ -17,6 +23,18 @@ describe("isoDate", () => {
   it("rejects impossible calendar dates", () => {
     expect(() => isoDate.parse("2026-02-31")).toThrow();
     expect(() => isoDate.parse("2026-13-01")).toThrow();
+  });
+});
+
+describe("isoDuration", () => {
+  it("accepts a valid ISO-8601 time duration", () => {
+    expect(isoDuration.parse("PT45M")).toBe("PT45M");
+    expect(isoDuration.parse("PT1H5M")).toBe("PT1H5M");
+  });
+
+  it("rejects invalid or empty time durations", () => {
+    expect(() => isoDuration.parse("45min")).toThrow();
+    expect(() => isoDuration.parse("PT")).toThrow();
   });
 });
 

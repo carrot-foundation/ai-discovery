@@ -11,6 +11,12 @@ export {
 export { faqPage, type FaqItem } from "./faq.js";
 export { organization, type OrganizationInput } from "./organization.js";
 export { person, type PersonInput } from "./person.js";
+export {
+  podcastEpisode,
+  podcastSeries,
+  type PodcastEpisodeInput,
+  type PodcastSeriesInput,
+} from "./podcast.js";
 export { speakable, type SpeakableInput } from "./speakable.js";
 export { schemaId } from "./types.js";
 export { website, type WebSiteInput } from "./website.js";

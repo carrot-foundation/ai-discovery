@@ -24,6 +24,13 @@ export const isoDate = z
     return !value.includes("T") || Number.isFinite(Date.parse(value));
   }, "must be a valid ISO-8601 date");
 
+export const isoDuration = z
+  .string()
+  .regex(
+    /^PT(?=\d+[HMS])(?:\d+H)?(?:\d+M)?(?:\d+S)?$/u,
+    "must be ISO-8601 duration with at least one time component",
+  );
+
 export const url = z
   .string()
   .url()
