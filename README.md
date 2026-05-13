@@ -310,18 +310,20 @@ a cache is provided.
 The JSON-LD module exports builders for the public page types Carrot sites use
 most often:
 
-| Builder            | Schema.org node                                      |
-| ------------------ | ---------------------------------------------------- |
-| `apiReference()`   | `APIReference` with a `WebAPI` target.               |
-| `article()`        | `BlogPosting`, `Article`, `TechArticle`, or `HowTo`. |
-| `breadcrumbList()` | `BreadcrumbList`.                                    |
-| `definedTerm()`    | `DefinedTerm`.                                       |
-| `definedTermSet()` | `DefinedTermSet`.                                    |
-| `faqPage()`        | `FAQPage`.                                           |
-| `organization()`   | `Organization`.                                      |
-| `person()`         | `Person`.                                            |
-| `speakable()`      | `SpeakableSpecification`.                            |
-| `website()`        | `WebSite`, with optional `SearchAction`.             |
+| Builder            | Schema.org node                                             |
+| ------------------ | ----------------------------------------------------------- |
+| `apiReference()`   | `APIReference` with a `WebAPI` target.                      |
+| `article()`        | `BlogPosting`, `Article`, `TechArticle`, or `HowTo`.        |
+| `breadcrumbList()` | `BreadcrumbList`.                                           |
+| `definedTerm()`    | `DefinedTerm`.                                              |
+| `definedTermSet()` | `DefinedTermSet`.                                           |
+| `faqPage()`        | `FAQPage`.                                                  |
+| `organization()`   | `Organization`.                                             |
+| `person()`         | `Person`.                                                   |
+| `podcastEpisode()` | `PodcastEpisode`, with optional media and platform links.   |
+| `podcastSeries()`  | `PodcastSeries`, with optional web feed and platform links. |
+| `speakable()`      | `SpeakableSpecification`.                                   |
+| `website()`        | `WebSite`, with optional `SearchAction`.                    |
 
 Use `compose(nodes)` for the canonical output shape:
 
