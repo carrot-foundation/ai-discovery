@@ -10,7 +10,7 @@ interface MediaRange {
 const NAME = /^[!#$%&'+.^_`|~0-9a-z-]+$/u;
 
 // RFC 9110 §5.6.2 token: a parameter name, or an unquoted parameter value.
-const TOKEN = /^[!#$%&'*+.^_`|~0-9a-z-]+$/iu;
+const TOKEN = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/u;
 
 // RFC 9110 §5.6.4 quoted-string: printable text, `\` escaping the next character.
 const QUOTED_STRING =
@@ -51,7 +51,8 @@ const splitOutsideQuotes = (
 };
 
 // RFC 9110 §5.6.6: `token=value` with a token or quoted-string value and no
-// whitespace around `=`. Only the first `=` splits, so `q=0.9=x` has no value.
+// whitespace around `=`. Only the first `=` splits, so `q=0.9=x` has the value
+// `0.9=x`, which is not a token.
 const parseParameter = (
   text: string,
 ): { name: string; value: string } | undefined => {

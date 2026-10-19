@@ -100,6 +100,8 @@ describe("prefersMarkdown", () => {
     ],
     ["a space before the equals sign", "text/markdown;q =0.9, text/html;q=0.5"],
     ["a space after the equals sign", "text/markdown;q= 0.9, text/html;q=0.5"],
+    ["a Kelvin sign in a name", "text/markdown;\u212A=x, text/html;q=0.5"],
+    ["a long s in a value", "text/markdown;p=\u017F, text/html;q=0.5"],
   ])("keeps HTML for %s in %j", (_label, accept) => {
     expect(prefersMarkdown(accept)).toBe(false);
   });
