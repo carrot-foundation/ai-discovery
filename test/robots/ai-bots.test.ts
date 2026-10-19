@@ -106,6 +106,7 @@ describe("AI_BOTS", () => {
   });
 
   it("freezes the registry so no consumer can change it for others", () => {
+    expect(Object.isFrozen(AI_BOT_INTENTS)).toBe(true);
     expect(Object.isFrozen(AI_BOTS)).toBe(true);
     AI_BOTS.forEach((b) => {
       expect(Object.isFrozen(b)).toBe(true);

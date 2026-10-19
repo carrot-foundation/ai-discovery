@@ -1,4 +1,4 @@
-export const AI_BOT_INTENTS = [
+const INTENTS = [
   "training",
   "search-index",
   "user-fetch",
@@ -20,7 +20,12 @@ export const AI_BOT_INTENTS = [
  * New intents may appear in minor releases; give exhaustive handling a
  * default.
  */
-export type AIBotIntent = (typeof AI_BOT_INTENTS)[number];
+export type AIBotIntent = (typeof INTENTS)[number];
+
+/** Every intent, in the order `buildRobots()` emits its groups. */
+export const AI_BOT_INTENTS: readonly AIBotIntent[] = Object.freeze([
+  ...INTENTS,
+]);
 
 /**
  * The classification up to 1.2. `agent` and `ai-browser` fold into
@@ -54,7 +59,10 @@ export interface AIBotEntry {
    * (https://vercel.com/docs/bot-management).
    */
   readonly vercelBotName?: string;
-  /** Operator documentation this entry was checked against. */
+  /**
+   * Documentation this entry was checked against: the operator's own where it
+   * publishes one.
+   */
   readonly source: string;
   /**
    * `robotsToken` when the bot has one, otherwise `name`. Bots without a
