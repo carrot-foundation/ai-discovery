@@ -130,11 +130,11 @@ buildRobots({ allow: "disallow-all" });
 ```
 
 No mode names `Applebot`, Apple's general crawler behind Spotlight, Siri and
-Safari search, so no mode removes a site from Apple's search. Apple may also
-train its foundation models on what Applebot crawls and use it to ground
-AI-generated answers. Disallowing the `Applebot-Extended` token, as
-`fetchers-only` and `block-all-ai` do, opts out of that training; a `nosnippet`
-meta tag keeps a page out of those answers
+Safari search, so it follows the `User-agent: *` group: only `disallow-all`
+removes a site from Apple's search. Apple may also train its foundation models
+on what Applebot crawls and use it to ground AI-generated answers. Disallowing
+the `Applebot-Extended` token, as every mode but `all-ai-bots` does, opts out of
+that training; a `nosnippet` meta tag keeps a page out of those answers
 ([Apple](https://support.apple.com/en-us/119829)).
 
 robots.txt only binds crawlers that honor it. Fetchers and agents acting on a
@@ -154,7 +154,7 @@ agents it cannot. Entries in both carry:
 | `robotsToken`       | The robots.txt `User-agent` token. `AI_BOTS` entries only.                                  |
 | `userAgentPatterns` | Case-insensitive substrings that identify the bot in a request's `User-Agent` header.       |
 | `vercelBotName`     | The value of Vercel's `bot_name` dimension, when Vercel's verified-bots directory lists it. |
-| `source`            | The documentation the entry was checked against: the operator's own where it publishes one. |
+| `source`            | The operator's documentation the entry was checked against.                                 |
 
 Robots-only control tokens such as `Google-Extended` and `Applebot-Extended`
 have a `robotsToken` but no `userAgentPatterns`: they never appear in requests.

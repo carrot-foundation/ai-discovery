@@ -59,8 +59,7 @@ export interface AIRegistryEntryBase {
    */
   readonly vercelBotName?: string;
   /**
-   * Documentation this entry was checked against: the operator's own where it
-   * publishes one.
+   * The operator's documentation this entry was checked against.
    */
   readonly source: string;
 }
