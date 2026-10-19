@@ -9,6 +9,13 @@ interface MediaRange {
 // Input is lowercased first.
 const NAME = /^[!#$%&'+.^_`|~0-9a-z-]+$/u;
 
+// RFC 9110 §5.6.2 token: a parameter name, or an unquoted parameter value.
+const TOKEN = /^[!#$%&'*+.^_`|~0-9a-z-]+$/iu;
+
+// RFC 9110 §5.6.4 quoted-string: printable text, `\` escaping the next character.
+const QUOTED_STRING =
+  /^"(?:[\t \u0021\u0023-\u005B\u005D-\u007E\u0080-\u00FF]|\\[\t \u0021-\u007E\u0080-\u00FF])*"$/u;
+
 // RFC 9110 §12.4.2: a weight is 0 to 1 with at most three decimals.
 const Q_VALUE = /^(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/u;
 
@@ -43,6 +50,20 @@ const splitOutsideQuotes = (
   return parts;
 };
 
+// RFC 9110 §5.6.6: `token=value` with a token or quoted-string value and no
+// whitespace around `=`. Only the first `=` splits, so `q=0.9=x` has no value.
+const parseParameter = (
+  text: string,
+): { name: string; value: string } | undefined => {
+  const separator = text.indexOf("=");
+  if (separator === -1) return undefined;
+  const name = text.slice(0, separator);
+  const value = text.slice(separator + 1);
+  const wellFormed =
+    TOKEN.test(name) && (TOKEN.test(value) || QUOTED_STRING.test(value));
+  return wellFormed ? { name, value } : undefined;
+};
+
 const parseRange = (part: string): MediaRange | undefined => {
   // Quotes are balanced by now, so the fallback only keeps the type total.
   const [range = "", ...params] = splitOutsideQuotes(part, ";") ?? [];
@@ -52,14 +73,15 @@ const parseRange = (part: string): MediaRange | undefined => {
     .split("/");
   if (!isMediaRange(type, subtype) || extra !== undefined) return undefined;
   let q = 1;
-  for (const param of params) {
-    // Only the first `=` separates name from value, so `q=0.9=x` is unreadable.
-    const separator = param.indexOf("=");
-    const name = separator === -1 ? param : param.slice(0, separator);
-    const value = separator === -1 ? "" : param.slice(separator + 1);
-    if (name.trim().toLowerCase() !== "q") continue;
-    if (!Q_VALUE.test(value.trim())) return undefined;
-    q = Number(value.trim());
+  for (const raw of params) {
+    const text = raw.trim();
+    // RFC 9110 §5.6.6 lets a parameter be empty, as after a trailing `;`.
+    if (text === "") continue;
+    const param = parseParameter(text);
+    if (param === undefined) return undefined;
+    if (param.name.toLowerCase() !== "q") continue;
+    if (!Q_VALUE.test(param.value)) return undefined;
+    q = Number(param.value);
   }
   return { type, subtype, q };
 };
@@ -95,8 +117,10 @@ const weightOf = (ranges: readonly MediaRange[], mediaType: string): number => {
  * `text/html`. A tie, a wildcard alone, a malformed header or no header
  * keeps HTML, so browsers never get Markdown by accident. Ranges match on
  * type and subtype alone: media-type parameters other than `q` are ignored,
- * so `text/markdown;profile=x` counts as `text/markdown`. A response that
- * varies on this must send `Vary: Accept`.
+ * so `text/markdown;profile=x` counts as `text/markdown`. They are still
+ * parsed, though: a parameter that is not `name=value` (RFC 9110 §5.6.6)
+ * makes the header malformed. A response that varies on this must send
+ * `Vary: Accept`.
  */
 export const prefersMarkdown = (accept: string | null | undefined): boolean => {
   if (accept === null || accept === undefined || accept.trim() === "") {

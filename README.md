@@ -262,8 +262,9 @@ It respects q-values and lets the most specific media range win. Markdown wins
 only when `text/markdown` weighs strictly more than `text/html`, so a tie, a
 wildcard alone, a header with any malformed range or a missing header keeps
 HTML. Ranges match on type and subtype alone: parameters other than `q` are
-ignored, so `text/markdown;profile=x` counts as `text/markdown`. Send
-`Vary: Accept` on any response that depends on it.
+ignored, so `text/markdown;profile=x` counts as `text/markdown`. They must
+still be well-formed `name=value` pairs, so `text/markdown;foo` is malformed
+and keeps HTML. Send `Vary: Accept` on any response that depends on it.
 
 ### Describe Carrot the same way everywhere
 

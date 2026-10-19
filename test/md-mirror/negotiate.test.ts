@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { prefersMarkdown } from "../../src/md-mirror/negotiate.js";
 
+// cspell:ignore apng
+
 describe("prefersMarkdown", () => {
   it.each([
     ["text/markdown", true],
@@ -77,6 +79,31 @@ describe("prefersMarkdown", () => {
     expect(prefersMarkdown(accept)).toBe(false);
   });
 
+  // RFC 9110 §5.6.6: parameter = token "=" ( token / quoted-string ), with no
+  // whitespace around "=". Only an empty parameter (a stray ";") may omit it.
+  it.each([
+    ["a bare parameter name", "text/markdown;foo, text/html;q=0.5"],
+    ["a bare name after q", "text/markdown;q=0.9;foo, text/html;q=0.5"],
+    ["a bare name on text/html", "text/html;foo;q=0.1, text/markdown;q=0.5"],
+    ["an empty value", "text/markdown;foo=, text/html;q=0.5"],
+    ["an empty name", "text/markdown;=x, text/html;q=0.5"],
+    ["a name with a space", "text/markdown;fo o=x, text/html;q=0.5"],
+    ["a name with a separator", "text/markdown;f@o=x, text/html;q=0.5"],
+    ["an unquoted value with a space", "text/markdown;p=a b, text/html;q=0.5"],
+    ["an unquoted value with a slash", "text/markdown;p=a/b, text/html;q=0.5"],
+    ["an unquoted value with a quote", 'text/markdown;p=a"b", text/html;q=0.5'],
+    ["a second equals sign", "text/markdown;p=a=b, text/html;q=0.5"],
+    ["junk after a quoted value", 'text/markdown;p="a"b, text/html;q=0.5'],
+    [
+      "a control character in a quote",
+      'text/markdown;p="a\u0001b", text/html;q=0.5',
+    ],
+    ["a space before the equals sign", "text/markdown;q =0.9, text/html;q=0.5"],
+    ["a space after the equals sign", "text/markdown;q= 0.9, text/html;q=0.5"],
+  ])("keeps HTML for %s in %j", (_label, accept) => {
+    expect(prefersMarkdown(accept)).toBe(false);
+  });
+
   it.each([
     ['text/markdown;profile="a,b";q=0.9, text/html;q=0.5', true],
     ['text/markdown;profile="a\\"b,c";q=0.9, text/html;q=0.5', true],
@@ -94,12 +121,60 @@ describe("prefersMarkdown", () => {
     expect(prefersMarkdown("text/markdown,, text/html;q=0.5,")).toBe(true);
   });
 
-  it("reads parameters other than q without letting them change the weight", () => {
+  it("reads well-formed parameters other than q without letting them change the weight", () => {
     expect(
       prefersMarkdown("text/markdown;charset=utf-8;q=0.9, text/html;q=0.5"),
     ).toBe(true);
     expect(prefersMarkdown("text/markdown;Q=0.9, text/html;q=0.5")).toBe(true);
-    expect(prefersMarkdown("text/markdown;foo, text/html;q=0.5")).toBe(true);
+    expect(
+      prefersMarkdown("text/markdown;level=1;q=0.9, text/html;q=0.5"),
+    ).toBe(true);
+    expect(
+      prefersMarkdown('text/markdown;charset="UTF-8", text/html;q=0.5'),
+    ).toBe(true);
+    expect(prefersMarkdown("text/markdown;f*o_.=a*b~, text/html;q=0.5")).toBe(
+      true,
+    );
+    expect(prefersMarkdown('text/markdown;p="", text/html;q=0.5')).toBe(true);
+    expect(
+      prefersMarkdown('text/markdown;p="a\\\tb \u00e9", text/html;q=0.5'),
+    ).toBe(true);
+  });
+
+  it.each([
+    "text/markdown;, text/html;q=0.5",
+    "text/markdown;;q=0.9, text/html;q=0.5",
+    "text/markdown; ;q=0.9, text/html;q=0.5",
+    "text/markdown;q=0.9;, text/html;q=0.5",
+  ])("accepts an empty parameter in %j (RFC 9110 §5.6.6)", (accept) => {
+    expect(prefersMarkdown(accept)).toBe(true);
+  });
+
+  it.each([
+    [
+      "Chrome",
+      "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    ],
+    [
+      "Firefox",
+      "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/png,image/svg+xml,*/*;q=0.8",
+    ],
+    [
+      "Safari",
+      "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    ],
+    ["axios", "application/json, text/plain, */*"],
+    ["curl", "*/*"],
+  ])("keeps HTML for the %s Accept header", (_client, accept) => {
+    expect(prefersMarkdown(accept)).toBe(false);
+  });
+
+  it.each([
+    "text/markdown;charset=utf-8",
+    'text/markdown; charset="UTF-8"',
+    "text/markdown;charset=utf-8, text/html;q=0.9, */*;q=0.1",
+  ])("serves Markdown for the agent header %j", (accept) => {
+    expect(prefersMarkdown(accept)).toBe(true);
   });
 
   it.each([
