@@ -208,7 +208,9 @@ Version 2 changes the robots module:
   different bot. Find entries by `robotsToken` instead.
 
 - `AI_BOTS`, `AI_AGENTS` and their entries are frozen. TypeScript already typed
-  them `readonly`; JavaScript code that mutated them now throws a `TypeError`.
+  them `readonly`. In JavaScript, `push` and other mutating array methods now
+  throw a `TypeError`; assigning a field throws in strict mode (ES modules,
+  `"use strict"`) and is ignored silently in a sloppy-mode script.
 
 - `AIBotEntry` has new required fields: `name`, `intent`, `robotsToken`,
   `userAgentPatterns` and `source`. Code that builds its own entries must set
