@@ -97,6 +97,17 @@ describe("AI_BOTS", () => {
       }
     });
 
+    it("keeps AI_BOTS assignable to the 1.2 entry shape", () => {
+      // The assignment is the check: type-check fails if a 1.2 field turns
+      // optional or `kind` widens past the 1.2 values.
+      const legacy: readonly {
+        userAgent: string;
+        kind: "training" | "search-index" | "user-fetch";
+        operator: string;
+      }[] = AI_BOTS;
+      expect(legacy).toBe(AI_BOTS);
+    });
+
     it("folds agent and ai-browser intents into the user-fetch kind", () => {
       AI_BOTS.forEach((b) => {
         expect(b.kind).toBe(

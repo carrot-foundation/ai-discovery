@@ -111,6 +111,9 @@ describe("buildRobots", () => {
       const out = buildRobots({ allow });
       for (const agent of AI_AGENTS) {
         expect(out).not.toContain(agent.name);
+        if (agent.vercelBotName !== undefined) {
+          expect(out).not.toContain(agent.vercelBotName);
+        }
       }
     },
   );
