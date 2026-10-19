@@ -130,8 +130,12 @@ buildRobots({ allow: "disallow-all" });
 ```
 
 No mode names `Applebot`, Apple's general crawler behind Spotlight, Siri and
-Safari search: it is not an AI bot. Apple's AI training opt-out is the
-`Applebot-Extended` token, which every mode names.
+Safari search, so no mode removes a site from Apple's search. Apple may also
+train its foundation models on what Applebot crawls and use it to ground
+AI-generated answers. Disallowing the `Applebot-Extended` token, as
+`fetchers-only` and `block-all-ai` do, opts out of that training; a `nosnippet`
+meta tag keeps a page out of those answers
+([Apple](https://support.apple.com/en-us/119829)).
 
 robots.txt only binds crawlers that honor it. Fetchers and agents acting on a
 user's request may not, and the agents in `AI_AGENTS` (Google-Agent and
