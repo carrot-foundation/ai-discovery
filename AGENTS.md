@@ -64,6 +64,7 @@ src/
   index.ts
   jsonld/
   robots/
+  identity/
   llms-txt/
   md-mirror/
 ```
@@ -80,8 +81,12 @@ src/
 - Use `compose(nodes)` for the canonical JSON-LD `{ "@context", "@graph" }`
   output shape.
 - Keep robot allow modes aligned with `RobotsAllowMode`: `all-ai-bots`,
-  `fetchers-only`, and `block-all-ai`. Add new bots in
-  `src/robots/ai-bots.ts` with the correct `kind`.
+  `fetchers-only`, `block-all-ai`, and `disallow-all`. Add new bots in
+  `src/robots/ai-bots.ts` with the correct `intent`, keeping the robots.txt
+  token (`robotsToken`) apart from request user agent patterns
+  (`userAgentPatterns`), and cite the operator's documentation in `source`.
+  `AI_BOTS` takes only bots with a documented `robotsToken`; agents without
+  one go in `AI_AGENTS`, which `buildRobots()` never names.
 - Mirror tests under `test/<module>/<file>.test.ts` for source files under
   `src/<module>/<file>.ts`. Vitest only picks up `test/**/*.test.ts`.
 

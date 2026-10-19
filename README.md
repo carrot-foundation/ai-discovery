@@ -41,6 +41,7 @@ output for consumers that still use `require()`.
 | Orama search    | `@carrot-foundation/ai-discovery/orama`      | Build, search, serialize, and restore keyword-only indexes.     |
 | IndexNow        | `@carrot-foundation/ai-discovery/index-now`  | Normalize, chunk, submit, and summarize IndexNow URL batches.   |
 | Glossary client | `@carrot-foundation/ai-discovery/glossary`   | Query the public Carrot Docs MCP glossary tool with cache.      |
+| Identity        | `@carrot-foundation/ai-discovery/identity`   | The canonical Carrot `Organization` and founder `Person`.       |
 | Root namespace  | `@carrot-foundation/ai-discovery`            | Namespaced exports for all modules.                             |
 
 ## Quick Start
@@ -48,20 +49,15 @@ output for consumers that still use `require()`.
 ### Add JSON-LD to a page
 
 ```typescript
+import { carrotOrganization } from "@carrot-foundation/ai-discovery/identity";
 import {
   article,
   compose,
-  organization,
   website,
 } from "@carrot-foundation/ai-discovery/jsonld";
 
 const graph = compose([
-  organization({
-    name: "Carrot Foundation",
-    url: "https://carrot.eco",
-    logo: "https://carrot.eco/logo.png",
-    description: "Public infrastructure for environmental assets.",
-  }),
+  carrotOrganization(),
   website({
     name: "Carrot Documentation",
     url: "https://docs.carrot.eco",
@@ -76,8 +72,8 @@ const graph = compose([
     datePublished: "2026-04-15",
     dateModified: "2026-05-01",
     author: {
-      name: "Carrot Foundation",
-      sameAs: ["https://carrot.eco"],
+      name: "Jane Doe",
+      url: "https://example.com/jane",
     },
     inLanguage: "en",
     image: "https://docs.carrot.eco/og/docs/concepts/dmrv.png",
@@ -112,16 +108,132 @@ export function GET() {
 }
 ```
 
-`allow` supports three modes:
+`allow` supports four modes:
 
-| Mode            | Behavior                                                     |
-| --------------- | ------------------------------------------------------------ |
-| `all-ai-bots`   | Allows known AI training, search-index, and user-fetch bots. |
-| `fetchers-only` | Allows search and user-fetch bots, blocks training bots.     |
-| `block-all-ai`  | Blocks all known AI bots listed by this package.             |
+| Mode            | Behavior                                                                        |
+| --------------- | ------------------------------------------------------------------------------- |
+| `all-ai-bots`   | Allows every known AI bot, each named explicitly. The policy for content sites. |
+| `fetchers-only` | Blocks training crawlers and allows search indexes and user fetchers.           |
+| `block-all-ai`  | Blocks every bot in `AI_BOTS`; other crawlers stay allowed.                     |
+| `disallow-all`  | Closes the whole site to every crawler, for authenticated apps.                 |
 
-The canonical bot list lives in `AI_BOTS`, with each entry classified as
-`training`, `search-index`, or `user-fetch`.
+The output has one group per bot intent, each headed by a comment, after the
+`User-agent: *` group. A crawler obeys only the most specific group naming it,
+so `disallowPaths` repeat in every allowed group. `sitemap` is optional; omit it
+for sites with nothing to index:
+
+```typescript
+buildRobots({ allow: "disallow-all" });
+// User-agent: *
+// Disallow: /
+// ...one `Disallow: /` group per AI bot intent
+```
+
+No mode names `Applebot`, Apple's general crawler behind Spotlight, Siri and
+Safari search, so it follows the `User-agent: *` group: only `disallow-all`
+removes a site from Apple's search. Apple may also train its foundation models
+on what Applebot crawls and use it to ground AI-generated answers. Disallowing
+the `Applebot-Extended` token, as every mode but `all-ai-bots` does, opts out of
+that training; a `nosnippet` meta tag keeps a page out of those answers
+([Apple](https://support.apple.com/en-us/119829)).
+
+robots.txt only binds crawlers that honor it. Fetchers and agents acting on a
+user's request may not, and the agents in `AI_AGENTS` (Google-Agent and
+ChatGPT agent) have no robots token, so no mode names them. `disallow-all`
+cannot be combined with `omitWildcard`, and an unknown `allow` value throws.
+
+### Classify AI bot traffic
+
+`AI_BOTS` lists the AI bots robots.txt can address, and `AI_AGENTS` the AI
+agents it cannot. Entries in both carry:
+
+| Field               | Meaning                                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------- |
+| `name`, `operator`  | The bot as its operator names it.                                                           |
+| `intent`            | `training`, `search-index`, `user-fetch`, `agent`, or `ai-browser` (`AI_BOT_INTENTS`).      |
+| `robotsToken`       | The robots.txt `User-agent` token. `AI_BOTS` entries only.                                  |
+| `userAgentPatterns` | Case-insensitive substrings that identify the bot in a request's `User-Agent` header.       |
+| `vercelBotName`     | The value of Vercel's `bot_name` dimension, when Vercel's verified-bots directory lists it. |
+| `source`            | The operator's documentation the entry was checked against.                                 |
+
+Robots-only control tokens such as `Google-Extended` and `Applebot-Extended`
+have a `robotsToken` but no `userAgentPatterns`: they never appear in requests.
+Agents that send a stock browser user agent, such as ChatGPT agent, are known
+only by `vercelBotName`. AI browsers such as ChatGPT Atlas and Perplexity Comet
+send a stock Chromium user agent, so no entry can identify them.
+
+```typescript
+import {
+  classifyUserAgent,
+  findByVercelBotName,
+} from "@carrot-foundation/ai-discovery/robots";
+
+classifyUserAgent(request.headers.get("user-agent"))?.intent;
+// "user-fetch" for ChatGPT-User, undefined for a browser
+
+findByVercelBotName("chatgpt-operator")?.intent; // "agent"
+```
+
+Both search `AI_BOTS` and `AI_AGENTS` and return an `AIRegistryEntry`: an
+`AIBotEntry` when `robotsToken` is set, an `AIAgentEntry` otherwise. Narrow it
+with `entry.robotsToken !== undefined`; an `in` check does not narrow. A user
+agent is self-declared. Verify it (published IP ranges, reverse DNS, Web Bot
+Auth) before trusting it.
+
+The fields from 1.2 remain on every `AI_BOTS` entry and are deprecated:
+`userAgent` equals `robotsToken`, and `kind` folds `agent` and `ai-browser`
+into `user-fetch`. `AI_AGENTS` entries carry neither.
+
+### Migrating from 1.x
+
+Version 2 changes the robots module:
+
+- `buildRobots()` emits one group per bot intent instead of one block per bot.
+  Each group opens with a `#` comment line and lists several `User-agent` lines
+  before its rules, as RFC 9309 allows:
+
+  ```text
+  # AI training crawlers
+  User-agent: GPTBot
+  User-agent: ClaudeBot
+  ...
+  Disallow: /
+  ```
+
+  Code that splits the output on blank lines and reads one `User-agent` per
+  block breaks. A test that maps each block's first line to the rule on its
+  second line now reads `# AI training crawlers` as the user agent and
+  `User-agent: GPTBot` as its rule. Parse groups instead: every `User-agent`
+  line in a block shares the rules that follow them. A blocked group carries
+  only `Disallow: /`; `disallowPaths` repeat in allowed groups alone, which
+  leaves every bot's effective policy as it was.
+
+- `AI_BOTS` is ordered by intent, so code that reads an entry by index gets a
+  different bot. Find entries by `robotsToken` instead.
+
+- `AI_BOTS`, `AI_AGENTS` and their entries are frozen. TypeScript already typed
+  them `readonly`. In JavaScript, `push` and other mutating array methods now
+  throw a `TypeError`; assigning a field throws in strict mode (ES modules,
+  `"use strict"`) and is ignored silently in a sloppy-mode script.
+
+- `AIBotEntry` has new required fields: `name`, `intent`, `robotsToken`,
+  `userAgentPatterns` and `source`. Code that builds its own entries must set
+  them.
+
+- The registry adds Amazonbot and Meta-ExternalAgent (training),
+  Amzn-SearchBot, Meta-WebIndexer and DuckAssistBot (search index), and
+  Meta-ExternalFetcher and Amzn-User (user fetch). `fetchers-only` now blocks
+  the two new training crawlers, and `block-all-ai` blocks all seven.
+
+- `buildRobots()` throws on an unknown `allow` value, and on `disallow-all`
+  combined with `omitWildcard`. `RobotsAllowMode` gains `disallow-all`, so an
+  exhaustive `switch` over it needs the new case.
+
+- Agents without a robots.txt token (Google-Agent, ChatGPT agent) are listed in
+  the new `AI_AGENTS`, not in `AI_BOTS`.
+
+- `userAgent` and `kind` remain on `AIBotEntry`, deprecated in favor of
+  `robotsToken` and `intent`.
 
 ### Build llms.txt files
 
@@ -190,6 +302,72 @@ export const GET = createMdMirrorRoute<{ slug?: string[] }>({
 The route helper returns `404` when `load()` returns `null`, otherwise it serves
 `text/markdown; charset=utf-8`, sets `x-source-url`, and applies a cache-control
 header. The default cache policy is `public, max-age=300, s-maxage=86400`.
+
+### Serve Markdown on the canonical URL
+
+`prefersMarkdown(accept)` reads a request's `Accept` header and decides whether
+the canonical URL should answer with the page's Markdown instead of its HTML:
+
+```typescript
+import { prefersMarkdown } from "@carrot-foundation/ai-discovery/md-mirror";
+
+prefersMarkdown("text/markdown"); // true
+prefersMarkdown("text/markdown, text/html;q=0.9"); // true
+prefersMarkdown("text/markdown, */*"); // true: named beats a wildcard
+prefersMarkdown("text/html, text/markdown"); // false: a named tie keeps HTML
+prefersMarkdown("*/*"); // false
+prefersMarkdown(null); // false
+```
+
+It respects q-values and lets the most specific media range win. Markdown wins
+when `text/markdown` weighs strictly more than `text/html`. At equal weight
+above 0, a range that names `text/markdown` beats `text/html` matched only
+through `text/*` or `*/*`, so `text/markdown, */*` gets Markdown. Equal weight
+keeps HTML when both are named, or when both match through wildcards alone. A
+Markdown weight of 0, a header with any malformed range or a missing header
+keeps HTML too. Ranges match on type and subtype alone: parameters other than
+`q` are ignored, so `text/markdown;profile=x` counts as `text/markdown`. They must
+still be well-formed `name=value` pairs, so `text/markdown;foo` is malformed
+and keeps HTML. The header is read as sent: type and subtype take ASCII token
+characters only and match case-insensitively on A-Z, and only space and tab
+count as whitespace, so a non-breaking space or a Kelvin sign is malformed and
+keeps HTML. Send `Vary: Accept` on any response that depends on it.
+
+### Describe Carrot the same way everywhere
+
+The `identity` module holds the one Carrot entity every Carrot site asserts:
+
+```typescript
+import {
+  CARROT_ORGANIZATION,
+  carrotOrganization,
+} from "@carrot-foundation/ai-discovery/identity";
+import { compose, website } from "@carrot-foundation/ai-discovery/jsonld";
+import { buildIndex } from "@carrot-foundation/ai-discovery/llms-txt";
+
+const graph = compose([
+  carrotOrganization(),
+  website({
+    name: "Carrot Documentation",
+    url: "https://docs.carrot.eco",
+    inLanguage: ["en", "pt-BR"],
+  }),
+]);
+
+const index = buildIndex({
+  site: {
+    name: CARROT_ORGANIZATION.name,
+    url: "https://docs.carrot.eco",
+    tagline: CARROT_ORGANIZATION.description,
+  },
+  sections: [],
+});
+```
+
+`carrotOrganization()` returns the `Organization` node: name `Carrot`, alternate
+name `Carrot Foundation`, one logo, Carrot's own profiles in `sameAs`, and the
+`@id` the Carrot sites already publish. Its founder, Ian McKee, is embedded as a
+`Person` (`carrotFounder()`), which carries his personal profiles.
 
 ### Register read-only MCP tools
 
@@ -310,20 +488,20 @@ a cache is provided.
 The JSON-LD module exports builders for the public page types Carrot sites use
 most often:
 
-| Builder            | Schema.org node                                             |
-| ------------------ | ----------------------------------------------------------- |
-| `apiReference()`   | `APIReference` with a `WebAPI` target.                      |
-| `article()`        | `BlogPosting`, `Article`, `TechArticle`, or `HowTo`.        |
-| `breadcrumbList()` | `BreadcrumbList`.                                           |
-| `definedTerm()`    | `DefinedTerm`.                                              |
-| `definedTermSet()` | `DefinedTermSet`.                                           |
-| `faqPage()`        | `FAQPage`.                                                  |
-| `organization()`   | `Organization`.                                             |
-| `person()`         | `Person`.                                                   |
-| `podcastEpisode()` | `PodcastEpisode`, with optional media and platform links.   |
-| `podcastSeries()`  | `PodcastSeries`, with optional web feed and platform links. |
-| `speakable()`      | `SpeakableSpecification`.                                   |
-| `website()`        | `WebSite`, with optional `SearchAction`.                    |
+| Builder            | Schema.org node                                              |
+| ------------------ | ------------------------------------------------------------ |
+| `apiReference()`   | `APIReference` with a `WebAPI` target.                       |
+| `article()`        | `BlogPosting`, `Article`, `TechArticle`, or `HowTo`.         |
+| `breadcrumbList()` | `BreadcrumbList`.                                            |
+| `definedTerm()`    | `DefinedTerm`.                                               |
+| `definedTermSet()` | `DefinedTermSet`.                                            |
+| `faqPage()`        | `FAQPage`.                                                   |
+| `organization()`   | `Organization`, with optional `alternateName` and `founder`. |
+| `person()`         | `Person`, with an optional stable `id`.                      |
+| `podcastEpisode()` | `PodcastEpisode`, with optional media and platform links.    |
+| `podcastSeries()`  | `PodcastSeries`, with optional web feed and platform links.  |
+| `speakable()`      | `SpeakableSpecification`.                                    |
+| `website()`        | `WebSite`, with optional `SearchAction`.                     |
 
 Use `compose(nodes)` for the canonical output shape:
 
@@ -361,6 +539,7 @@ src/
   orama/            # Keyword search index helpers
   index-now/        # IndexNow URL normalization and submission helpers
   glossary/         # Carrot Docs glossary MCP client
+  identity/         # Canonical Carrot Organization and founder
 test/
   jsonld/
   robots/
@@ -370,6 +549,7 @@ test/
   orama/
   index-now/
   glossary/
+  identity/
 ```
 
 When adding a new top-level module, keep the public surface in sync:

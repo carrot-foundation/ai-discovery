@@ -6,3 +6,4 @@ dist-tarball/
 .eslintcache
 *.log
 *.tsbuildinfo
+local/

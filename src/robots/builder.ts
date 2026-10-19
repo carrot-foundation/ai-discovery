@@ -1,45 +1,108 @@
-import { AI_BOTS, type AIBotKind } from "./ai-bots.js";
+import { AI_BOT_INTENTS, AI_BOTS, type AIBotIntent } from "./ai-bots.js";
 
-export type RobotsAllowMode = "all-ai-bots" | "fetchers-only" | "block-all-ai";
+const ALLOW_MODES = [
+  "all-ai-bots",
+  "fetchers-only",
+  "block-all-ai",
+  "disallow-all",
+] as const;
+
+/**
+ * - `all-ai-bots`: every AI bot allowed, each one named explicitly.
+ * - `fetchers-only`: training crawlers blocked, everything else allowed.
+ * - `block-all-ai`: every AI bot in `AI_BOTS` blocked; other crawlers stay
+ *   allowed.
+ * - `disallow-all`: the whole site closed to every crawler, for
+ *   authenticated apps with nothing to index.
+ *
+ * User-triggered fetchers and agents act for a person in real time and may
+ * not honor robots.txt. Only `AI_BOTS` entries are named: the agents in
+ * `AI_AGENTS` have no robots.txt token.
+ */
+export type RobotsAllowMode = (typeof ALLOW_MODES)[number];
 
 export interface BuildRobotsOptions {
   readonly allow: RobotsAllowMode;
-  readonly sitemap: string;
+  /** Omit when the site has no sitemap, such as an authenticated app. */
+  readonly sitemap?: string;
   readonly disallowPaths?: readonly string[];
-  /** Opt out of emitting the universal `User-agent: *` block. */
+  /**
+   * Opt out of emitting the universal `User-agent: *` block. Not allowed with
+   * `disallow-all`, which must close the site to every crawler.
+   */
   readonly omitWildcard?: boolean;
 }
 
-const FETCHER_KINDS: readonly AIBotKind[] = ["search-index", "user-fetch"];
-
-const isAllowedFor = (mode: RobotsAllowMode, kind: AIBotKind): boolean => {
-  if (mode === "block-all-ai") return false;
-  if (mode === "all-ai-bots") return true;
-  return FETCHER_KINDS.includes(kind);
+const GROUP_COMMENTS: Readonly<Record<AIBotIntent, string>> = {
+  training: "AI training crawlers",
+  "search-index": "AI search indexes",
+  "user-fetch": "AI fetchers acting on a user request",
+  agent: "AI agents acting on a user request",
+  "ai-browser": "AI browsers",
 };
 
+const isAllowedFor = (mode: RobotsAllowMode, intent: AIBotIntent): boolean => {
+  switch (mode) {
+    case "all-ai-bots":
+      return true;
+    case "fetchers-only":
+      return intent !== "training";
+    case "block-all-ai":
+    case "disallow-all":
+      return false;
+  }
+};
+
+const rules = (allowed: boolean, disallowPaths: readonly string[]): string[] =>
+  allowed
+    ? [...disallowPaths.map((path) => `Disallow: ${path}`), "Allow: /"]
+    : ["Disallow: /"];
+
+/**
+ * Builds robots.txt with one group per bot intent. A crawler obeys only the
+ * most specific group naming it, so `disallowPaths` repeat in every allowed
+ * group.
+ *
+ * @throws When `allow` is not a known mode, or when `disallow-all` is combined
+ * with `omitWildcard`.
+ */
 export const buildRobots = ({
   allow,
   sitemap,
   disallowPaths = [],
   omitWildcard = false,
 }: BuildRobotsOptions): string => {
-  const lines: string[] = [];
+  // Untyped callers can pass anything; an unknown mode must not open the site.
+  if (!(ALLOW_MODES as readonly string[]).includes(allow)) {
+    throw new Error(`Unknown robots allow mode: ${String(allow)}`);
+  }
+  if (allow === "disallow-all" && omitWildcard) {
+    throw new Error(
+      "disallow-all closes the site to every crawler and needs the User-agent: * group",
+    );
+  }
+
+  const groups: string[][] = [];
 
   if (!omitWildcard) {
-    lines.push("User-agent: *");
-    for (const path of disallowPaths) lines.push(`Disallow: ${path}`);
-    lines.push("Allow: /");
-    lines.push("");
+    groups.push([
+      "User-agent: *",
+      ...rules(allow !== "disallow-all", disallowPaths),
+    ]);
   }
 
-  for (const bot of AI_BOTS) {
-    lines.push(`User-agent: ${bot.userAgent}`);
-    for (const path of disallowPaths) lines.push(`Disallow: ${path}`);
-    lines.push(isAllowedFor(allow, bot.kind) ? "Allow: /" : "Disallow: /");
-    lines.push("");
+  for (const intent of AI_BOT_INTENTS) {
+    const tokens = AI_BOTS.filter((bot) => bot.intent === intent).map(
+      (bot) => bot.robotsToken,
+    );
+    if (tokens.length === 0) continue;
+    groups.push([
+      `# ${GROUP_COMMENTS[intent]}`,
+      ...tokens.map((token) => `User-agent: ${token}`),
+      ...rules(isAllowedFor(allow, intent), disallowPaths),
+    ]);
   }
 
-  lines.push(`Sitemap: ${sitemap}`);
-  return `${lines.join("\n")}\n`;
+  if (sitemap !== undefined) groups.push([`Sitemap: ${sitemap}`]);
+  return `${groups.map((group) => group.join("\n")).join("\n\n")}\n`;
 };

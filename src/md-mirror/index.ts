@@ -1,3 +1,4 @@
+export { prefersMarkdown } from "./negotiate.js";
 export { createMdMirrorRoute } from "./next-route.js";
 export type {
   CreateMdMirrorRouteOptions,

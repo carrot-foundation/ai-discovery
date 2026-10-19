@@ -11,6 +11,7 @@ export default defineConfig({
     "orama/index": "src/orama/index.ts",
     "index-now/index": "src/index-now/index.ts",
     "glossary/index": "src/glossary/index.ts",
+    "identity/index": "src/identity/index.ts",
   },
   format: ["esm", "cjs"],
   dts: true,

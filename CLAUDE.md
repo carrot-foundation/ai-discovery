@@ -47,9 +47,10 @@ Each top-level domain under `src/<module>/` ships as a separate subpath export p
 src/
   index.ts             # barrel: namespaced re-exports (jsonld, robots, llmsTxt, mdMirror)
   jsonld/              # Schema.org node builders + compose() → @graph document
-  robots/              # buildRobots() + AI_BOTS catalog (kind: search-index | user-fetch | training | …)
+  robots/              # buildRobots() + AI_BOTS / AI_AGENTS registries (intent: training | search-index | user-fetch | agent | ai-browser) + classifyUserAgent()
+  identity/            # canonical Carrot Organization and founder (CARROT_ORGANIZATION, carrotOrganization())
   llms-txt/            # buildIndex() / buildFull() generators
-  md-mirror/           # createMdMirrorRoute() — Next.js App Router handler factory
+  md-mirror/           # createMdMirrorRoute() — Next.js App Router handler factory + prefersMarkdown() Accept negotiation
 ```
 
 Conventions:
@@ -58,7 +59,7 @@ Conventions:
 - **Zod for validation.** Shared primitives (`isoDate`, `url`, `language`, `schemaId`) live in `src/jsonld/types.ts`. Reuse them; don't re-derive ISO/URL regexes.
 - **`schemaId(siteOrigin, kind, payload?)`** produces stable `@id` URIs (`<origin>/#<kind>-<sha1[0:8]>`). Use for any node that needs a deterministic identity.
 - **`compose(nodes)`** wraps node builders into a single `{ "@context", "@graph" }` document — that's the canonical JSON-LD output shape.
-- **`robots` `RobotsAllowMode`**: `all-ai-bots` | `fetchers-only` | `block-all-ai`. `fetchers-only` allows kinds in `FETCHER_KINDS` (`search-index`, `user-fetch`); training-only crawlers get `Disallow: /`. Add new bots in `src/robots/ai-bots.ts` with the correct `kind`.
+- **`robots` `RobotsAllowMode`**: `all-ai-bots` | `fetchers-only` | `block-all-ai` | `disallow-all`. `buildRobots` emits one group per intent; `fetchers-only` gives training crawlers `Disallow: /`; `disallow-all` closes the site to every crawler (authenticated apps). Add new bots in `src/robots/ai-bots.ts` with the correct `intent`, `userAgentPatterns` only for strings that appear in requests, and the operator's documentation in `source`. A bot goes in `AI_BOTS` only with the `robotsToken` its operator documents; an agent without one goes in `AI_AGENTS`, which `buildRobots` never names.
 - **Tests mirror source** — `test/<module>/<file>.test.ts` for every `src/<module>/<file>.ts`. Vitest only picks up `test/**/*.test.ts`.
 
 ## TypeScript
