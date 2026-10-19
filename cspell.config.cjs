@@ -40,6 +40,7 @@ module.exports = {
     "Amzn",
     "amzn",
     "Anthropic",
+    "apng",
     "Applebot",
     "Bytespider",
     "ccbot",

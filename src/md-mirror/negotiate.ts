@@ -27,9 +27,13 @@ const parseRange = (part: string): MediaRange | undefined => {
   if (!TOKEN.test(type) || !TOKEN.test(subtype) || extra !== undefined) {
     return undefined;
   }
+  // `*` stands for a type only together with `*/*`.
+  if (type === "*" && subtype !== "*") return undefined;
   let q = 1;
   const params = new Map<string, string>();
   for (const param of rawParams) {
+    // RFC 9110 §5.6.6 allows empty parameters, as in `text/markdown;`.
+    if (param.trim() === "") continue;
     const separator = param.indexOf("=");
     if (separator === -1) return undefined;
     const name = param.slice(0, separator).trim().toLowerCase();
