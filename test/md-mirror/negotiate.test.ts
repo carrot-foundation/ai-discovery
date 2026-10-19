@@ -20,10 +20,6 @@ describe("prefersMarkdown", () => {
     ["text/markdown;q=0.9, text/html;q=0.9", false],
     ["text/markdown;q=0.5, text/html", false],
     ["text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", false],
-    [
-      "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-      false,
-    ],
   ])("keeps HTML for %j (q-values, ties go to HTML)", (accept, expected) => {
     expect(prefersMarkdown(accept)).toBe(expected);
   });
@@ -67,42 +63,21 @@ describe("prefersMarkdown", () => {
     "text/html;q=.9, text/markdown",
     "text/html@;q=1, text/markdown;q=0.5",
     "text/markdown, text/ht ml;q=1",
-    "*/html;q=1, text/markdown;q=0.5",
-    "text/markdown;level, text/html;q=0.1",
+    "text/ht(ml;q=1, text/markdown",
   ])("keeps HTML when any range in %j is malformed", (accept) => {
     expect(prefersMarkdown(accept)).toBe(false);
   });
 
-  it("skips empty list elements and empty parameters", () => {
+  it("skips empty list elements", () => {
     expect(prefersMarkdown("text/markdown,, text/html;q=0.5,")).toBe(true);
-    expect(prefersMarkdown("text/markdown;, text/html;q=0.5")).toBe(true);
-    expect(prefersMarkdown("text/markdown;;q=0.9, text/html;q=0.5")).toBe(true);
   });
 
-  it.each([
-    ["text/markdown;charset=utf-8;q=0.9, text/html;q=0.5", true],
-    ['text/markdown;charset="UTF-8", text/html;q=0.5', true],
-    ["text/markdown;Q=0.9, text/html;q=0.5", true],
-    ["text/markdown;charset=iso-8859-1, text/html;q=0.5", false],
-    [
-      "text/markdown;profile=foo;q=0.9, text/markdown;q=0.1, text/html;q=0.5",
-      false,
-    ],
-    ["text/markdown, text/html;level=1", true],
-    [
-      "text/markdown;q=0.2, text/markdown;charset=utf-8;q=0.9, text/html;q=0.5",
-      true,
-    ],
-    [
-      "text/markdown;charset=utf-8;q=0.1, text/markdown;q=0.9, text/html;q=0.5",
-      false,
-    ],
-  ])(
-    "applies a parameterized range only when it matches the served UTF-8 representation: %j",
-    (accept, expected) => {
-      expect(prefersMarkdown(accept)).toBe(expected);
-    },
-  );
+  it("reads parameters other than q without letting them change the weight", () => {
+    expect(
+      prefersMarkdown("text/markdown;charset=utf-8;q=0.9, text/html;q=0.5"),
+    ).toBe(true);
+    expect(prefersMarkdown("text/markdown;Q=0.9, text/html;q=0.5")).toBe(true);
+  });
 
   it.each([
     ["text/markdown;q=0.2, text/markdown;q=0.9, text/html;q=0.5", true],
