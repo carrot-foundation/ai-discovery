@@ -70,6 +70,7 @@ describe("prefersMarkdown", () => {
     "text/ht*ml;q=1, text/markdown;q=0.5",
     'text/markdown;profile="a, text/html;q=0.5',
     'text/markdown;profile="a\\',
+    "text/markdown;q=0.9=x, text/html;q=0.5",
   ])("keeps HTML when any range in %j is malformed", (accept) => {
     expect(prefersMarkdown(accept)).toBe(false);
   });

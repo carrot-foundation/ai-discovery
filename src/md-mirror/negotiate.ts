@@ -53,7 +53,10 @@ const parseRange = (part: string): MediaRange | undefined => {
   if (!isMediaRange(type, subtype) || extra !== undefined) return undefined;
   let q = 1;
   for (const param of params) {
-    const [name = "", value = ""] = param.split("=");
+    // Only the first `=` separates name from value, so `q=0.9=x` is unreadable.
+    const separator = param.indexOf("=");
+    const name = separator === -1 ? param : param.slice(0, separator);
+    const value = separator === -1 ? "" : param.slice(separator + 1);
     if (name.trim().toLowerCase() !== "q") continue;
     if (!Q_VALUE.test(value.trim())) return undefined;
     q = Number(value.trim());
