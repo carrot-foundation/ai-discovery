@@ -8,4 +8,8 @@ describe("package exports", () => {
     expect(packageJson.exports).toHaveProperty("./index-now");
     expect(packageJson.exports).toHaveProperty("./glossary");
   });
+
+  it("exports the canonical Carrot identity", () => {
+    expect(packageJson.exports).toHaveProperty("./identity");
+  });
 });

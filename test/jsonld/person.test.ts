@@ -21,4 +21,18 @@ describe("person", () => {
     });
     expect(node.sameAs).toEqual(["https://www.linkedin.com/in/crissantosdev"]);
   });
+
+  it("uses an explicit id as @id, keeping url as the profile link", () => {
+    const node = person({
+      id: "https://carrot.eco/#person-cris",
+      name: "Cris Santos",
+      url: "https://example.com/cris",
+    });
+    expect(node["@id"]).toBe("https://carrot.eco/#person-cris");
+    expect(node.url).toBe("https://example.com/cris");
+  });
+
+  it("omits @id when neither id nor url is given", () => {
+    expect(person({ name: "Cris Santos" })).not.toHaveProperty("@id");
+  });
 });

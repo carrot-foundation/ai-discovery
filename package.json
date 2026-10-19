@@ -98,6 +98,16 @@
         "types": "./dist/glossary/index.d.cts",
         "default": "./dist/glossary/index.cjs"
       }
+    },
+    "./identity": {
+      "import": {
+        "types": "./dist/identity/index.d.ts",
+        "default": "./dist/identity/index.js"
+      },
+      "require": {
+        "types": "./dist/identity/index.d.cts",
+        "default": "./dist/identity/index.cjs"
+      }
     }
   },
   "files": [

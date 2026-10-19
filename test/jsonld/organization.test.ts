@@ -20,6 +20,24 @@ describe("organization", () => {
     expect(node.sameAs).toHaveLength(2);
   });
 
+  it("emits alternateName and founder only when given", () => {
+    const base = {
+      name: "Carrot",
+      url: "https://carrot.eco",
+      logo: "https://carrot.eco/logo.png",
+    };
+    const founder = { "@type": "Person", "@id": "https://carrot.eco/#p" };
+    expect(organization(base)).not.toHaveProperty("alternateName");
+    expect(organization(base)).not.toHaveProperty("founder");
+    const node = organization({
+      ...base,
+      alternateName: "Carrot Foundation",
+      founder,
+    });
+    expect(node.alternateName).toBe("Carrot Foundation");
+    expect(node.founder).toEqual(founder);
+  });
+
   it("rejects relative URLs", () => {
     expect(() =>
       organization({ name: "X", url: "/x", logo: "/logo.png" }),

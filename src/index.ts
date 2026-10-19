@@ -7,3 +7,4 @@ export * as mcpServer from "./mcp-server/index.js";
 export * as orama from "./orama/index.js";
 export * as indexNow from "./index-now/index.js";
 export * as glossary from "./glossary/index.js";
+export * as identity from "./identity/index.js";

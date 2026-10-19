@@ -3,10 +3,13 @@ import { schemaId, url } from "./types.js";
 
 const inputSchema = z.object({
   name: z.string().min(1),
+  alternateName: z.string().min(1).optional(),
   url,
   logo: url,
   description: z.string().optional(),
   sameAs: z.array(url).default([]),
+  /** A `Person` node from `person()`, or a `{ "@id" }` reference to one. */
+  founder: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type OrganizationInput = z.input<typeof inputSchema>;
@@ -19,11 +22,15 @@ export const organization = (
     "@type": "Organization",
     "@id": schemaId(parsed.url, "org"),
     name: parsed.name,
+    ...(parsed.alternateName !== undefined && {
+      alternateName: parsed.alternateName,
+    }),
     url: parsed.url,
     logo: parsed.logo,
     ...(parsed.description !== undefined && {
       description: parsed.description,
     }),
     sameAs: parsed.sameAs,
+    ...(parsed.founder !== undefined && { founder: parsed.founder }),
   };
 };
