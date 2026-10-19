@@ -41,6 +41,7 @@ output for consumers that still use `require()`.
 | Orama search    | `@carrot-foundation/ai-discovery/orama`      | Build, search, serialize, and restore keyword-only indexes.     |
 | IndexNow        | `@carrot-foundation/ai-discovery/index-now`  | Normalize, chunk, submit, and summarize IndexNow URL batches.   |
 | Glossary client | `@carrot-foundation/ai-discovery/glossary`   | Query the public Carrot Docs MCP glossary tool with cache.      |
+| Identity        | `@carrot-foundation/ai-discovery/identity`   | The canonical Carrot `Organization` and founder `Person`.       |
 | Root namespace  | `@carrot-foundation/ai-discovery`            | Namespaced exports for all modules.                             |
 
 ## Quick Start
@@ -112,16 +113,67 @@ export function GET() {
 }
 ```
 
-`allow` supports three modes:
+`allow` supports four modes:
 
-| Mode            | Behavior                                                     |
-| --------------- | ------------------------------------------------------------ |
-| `all-ai-bots`   | Allows known AI training, search-index, and user-fetch bots. |
-| `fetchers-only` | Allows search and user-fetch bots, blocks training bots.     |
-| `block-all-ai`  | Blocks all known AI bots listed by this package.             |
+| Mode            | Behavior                                                                        |
+| --------------- | ------------------------------------------------------------------------------- |
+| `all-ai-bots`   | Allows every known AI bot, each named explicitly. The policy for content sites. |
+| `fetchers-only` | Blocks training crawlers and allows search indexes and user fetchers.           |
+| `block-all-ai`  | Blocks every known AI bot; other crawlers stay allowed.                         |
+| `disallow-all`  | Closes the whole site to every crawler, for authenticated apps.                 |
 
-The canonical bot list lives in `AI_BOTS`, with each entry classified as
-`training`, `search-index`, or `user-fetch`.
+The output has one group per bot intent, each headed by a comment, after the
+`User-agent: *` group. A crawler obeys only the most specific group naming it,
+so `disallowPaths` repeat in every allowed group. `sitemap` is optional; omit it
+for sites with nothing to index:
+
+```typescript
+buildRobots({ allow: "disallow-all" });
+// User-agent: *
+// Disallow: /
+// ...one `Disallow: /` group per AI bot intent
+```
+
+`block-all-ai` also blocks `Applebot`, which powers Spotlight, Siri and Safari
+search as well as Apple's AI features.
+
+### Classify AI bot traffic
+
+`AI_BOTS` is the single registry of AI bots. Each entry carries:
+
+| Field               | Meaning                                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------- |
+| `name`, `operator`  | The bot as its operator names it.                                                           |
+| `intent`            | `training`, `search-index`, `user-fetch`, `agent`, or `ai-browser` (`AI_BOT_INTENTS`).      |
+| `robotsToken`       | The robots.txt `User-agent` token, when the operator documents one.                         |
+| `userAgentPatterns` | Case-insensitive substrings that identify the bot in a request's `User-Agent` header.       |
+| `vercelBotName`     | The value of Vercel's `bot_name` dimension, when Vercel's verified-bots directory lists it. |
+| `source`            | The operator documentation the entry was checked against.                                   |
+
+Robots-only control tokens such as `Google-Extended` and `Applebot-Extended`
+have a `robotsToken` but no `userAgentPatterns`: they never appear in requests.
+Agents that send a stock browser user agent, such as ChatGPT agent, are known
+only by `vercelBotName`. AI browsers such as ChatGPT Atlas and Perplexity Comet
+send a stock Chromium user agent, so no entry can identify them.
+
+```typescript
+import {
+  classifyUserAgent,
+  findByVercelBotName,
+} from "@carrot-foundation/ai-discovery/robots";
+
+classifyUserAgent(request.headers.get("user-agent"))?.intent;
+// "user-fetch" for ChatGPT-User, undefined for a browser
+
+findByVercelBotName("chatgpt-operator")?.intent; // "agent"
+```
+
+A user agent is self-declared. Verify it (published IP ranges, reverse DNS, Web
+Bot Auth) before trusting it.
+
+The 1.x fields remain on every entry and are deprecated: `userAgent` equals
+`robotsToken` (or `name` when there is none), and `kind` folds `agent` and
+`ai-browser` into `user-fetch`.
 
 ### Build llms.txt files
 
@@ -190,6 +242,62 @@ export const GET = createMdMirrorRoute<{ slug?: string[] }>({
 The route helper returns `404` when `load()` returns `null`, otherwise it serves
 `text/markdown; charset=utf-8`, sets `x-source-url`, and applies a cache-control
 header. The default cache policy is `public, max-age=300, s-maxage=86400`.
+
+### Serve Markdown on the canonical URL
+
+`prefersMarkdown(accept)` reads a request's `Accept` header and decides whether
+the canonical URL should answer with the page's Markdown instead of its HTML:
+
+```typescript
+import { prefersMarkdown } from "@carrot-foundation/ai-discovery/md-mirror";
+
+prefersMarkdown("text/markdown"); // true
+prefersMarkdown("text/markdown, text/html;q=0.9"); // true
+prefersMarkdown("text/html, text/markdown"); // false: a tie keeps HTML
+prefersMarkdown("*/*"); // false
+prefersMarkdown(null); // false
+```
+
+It respects q-values and lets the most specific media range win. Markdown wins
+only when `text/markdown` weighs strictly more than `text/html`, so a tie, a
+wildcard alone or a missing header keeps HTML. Send `Vary: Accept` on any
+response that depends on it.
+
+### Describe Carrot the same way everywhere
+
+The `identity` module holds the one Carrot entity every Carrot site asserts:
+
+```typescript
+import {
+  CARROT_ORGANIZATION,
+  carrotOrganization,
+} from "@carrot-foundation/ai-discovery/identity";
+import { compose, website } from "@carrot-foundation/ai-discovery/jsonld";
+import { buildIndex } from "@carrot-foundation/ai-discovery/llms-txt";
+
+const graph = compose([
+  carrotOrganization(),
+  website({
+    name: "Carrot Documentation",
+    url: "https://docs.carrot.eco",
+    inLanguage: ["en", "pt-BR"],
+  }),
+]);
+
+const index = buildIndex({
+  site: {
+    name: CARROT_ORGANIZATION.name,
+    url: "https://docs.carrot.eco",
+    tagline: CARROT_ORGANIZATION.description,
+  },
+  sections: [],
+});
+```
+
+`carrotOrganization()` returns the `Organization` node: name `Carrot`, alternate
+name `Carrot Foundation`, one logo, Carrot's own profiles in `sameAs`, and the
+`@id` the Carrot sites already publish. Its founder, Ian McKee, is embedded as a
+`Person` (`carrotFounder()`), which carries his personal profiles.
 
 ### Register read-only MCP tools
 
@@ -310,20 +418,20 @@ a cache is provided.
 The JSON-LD module exports builders for the public page types Carrot sites use
 most often:
 
-| Builder            | Schema.org node                                             |
-| ------------------ | ----------------------------------------------------------- |
-| `apiReference()`   | `APIReference` with a `WebAPI` target.                      |
-| `article()`        | `BlogPosting`, `Article`, `TechArticle`, or `HowTo`.        |
-| `breadcrumbList()` | `BreadcrumbList`.                                           |
-| `definedTerm()`    | `DefinedTerm`.                                              |
-| `definedTermSet()` | `DefinedTermSet`.                                           |
-| `faqPage()`        | `FAQPage`.                                                  |
-| `organization()`   | `Organization`.                                             |
-| `person()`         | `Person`.                                                   |
-| `podcastEpisode()` | `PodcastEpisode`, with optional media and platform links.   |
-| `podcastSeries()`  | `PodcastSeries`, with optional web feed and platform links. |
-| `speakable()`      | `SpeakableSpecification`.                                   |
-| `website()`        | `WebSite`, with optional `SearchAction`.                    |
+| Builder            | Schema.org node                                              |
+| ------------------ | ------------------------------------------------------------ |
+| `apiReference()`   | `APIReference` with a `WebAPI` target.                       |
+| `article()`        | `BlogPosting`, `Article`, `TechArticle`, or `HowTo`.         |
+| `breadcrumbList()` | `BreadcrumbList`.                                            |
+| `definedTerm()`    | `DefinedTerm`.                                               |
+| `definedTermSet()` | `DefinedTermSet`.                                            |
+| `faqPage()`        | `FAQPage`.                                                   |
+| `organization()`   | `Organization`, with optional `alternateName` and `founder`. |
+| `person()`         | `Person`, with an optional stable `id`.                      |
+| `podcastEpisode()` | `PodcastEpisode`, with optional media and platform links.    |
+| `podcastSeries()`  | `PodcastSeries`, with optional web feed and platform links.  |
+| `speakable()`      | `SpeakableSpecification`.                                    |
+| `website()`        | `WebSite`, with optional `SearchAction`.                     |
 
 Use `compose(nodes)` for the canonical output shape:
 
@@ -361,6 +469,7 @@ src/
   orama/            # Keyword search index helpers
   index-now/        # IndexNow URL normalization and submission helpers
   glossary/         # Carrot Docs glossary MCP client
+  identity/         # Canonical Carrot Organization and founder
 test/
   jsonld/
   robots/
@@ -370,6 +479,7 @@ test/
   orama/
   index-now/
   glossary/
+  identity/
 ```
 
 When adding a new top-level module, keep the public surface in sync:
