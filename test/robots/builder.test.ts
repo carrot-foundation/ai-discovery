@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AI_BOTS } from "../../src/robots/ai-bots.js";
-import { buildRobots } from "../../src/robots/builder.js";
+import { buildRobots, type RobotsAllowMode } from "../../src/robots/builder.js";
 
 interface Group {
   readonly comment?: string;
@@ -81,7 +81,7 @@ describe("buildRobots", () => {
   it("addresses every bot that has a robots token, and only those", () => {
     const out = buildRobots({ allow: "all-ai-bots", sitemap: SITEMAP });
     const userAgents = parseGroups(out).flatMap((g) => g.userAgents);
-    expect(userAgents).toEqual(["*", ...ROBOTS_TOKENS]);
+    expect([...userAgents].sort()).toEqual(["*", ...ROBOTS_TOKENS].sort());
     expect(out).not.toContain("Google-Agent");
   });
 
@@ -110,6 +110,51 @@ describe("buildRobots", () => {
     });
   });
 
+  it("renders the docs call shape exactly", () => {
+    const rules = ["Disallow: /api/", "Disallow: /internal/", "Disallow: /mcp"];
+    const group = (comment: string, tokens: readonly string[]) =>
+      [`# ${comment}`, ...tokens.map((t) => `User-agent: ${t}`), ...rules]
+        .concat("Allow: /")
+        .join("\n");
+    const expected = [
+      ["User-agent: *", ...rules, "Allow: /"].join("\n"),
+      group("AI training crawlers", [
+        "GPTBot",
+        "ClaudeBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "Meta-ExternalAgent",
+        "Amazonbot",
+        "CCBot",
+        "Bytespider",
+      ]),
+      group("AI search indexes", [
+        "OAI-SearchBot",
+        "Claude-SearchBot",
+        "PerplexityBot",
+        "Applebot",
+        "Amzn-SearchBot",
+        "Meta-WebIndexer",
+        "DuckAssistBot",
+      ]),
+      group("AI fetchers acting on a user request", [
+        "ChatGPT-User",
+        "Claude-User",
+        "Perplexity-User",
+        "Meta-ExternalFetcher",
+        "Amzn-User",
+      ]),
+      `Sitemap: ${SITEMAP}`,
+    ].join("\n\n");
+    expect(
+      buildRobots({
+        allow: "all-ai-bots",
+        sitemap: SITEMAP,
+        disallowPaths: ["/api/", "/internal/", "/mcp"],
+      }),
+    ).toBe(`${expected}\n`);
+  });
+
   it("keeps the docs call shape working with its disallowed paths on every group", () => {
     const out = buildRobots({
       allow: "all-ai-bots",
@@ -135,6 +180,19 @@ describe("buildRobots", () => {
     expect(rulesFor(out, "*")).toEqual(["Allow: /"]);
   });
 
+  it("keeps disallowed paths on allowed groups and closes blocked ones when allow=fetchers-only", () => {
+    const out = buildRobots({
+      allow: "fetchers-only",
+      disallowPaths: ["/api/"],
+    });
+    expect(rulesFor(out, "GPTBot")).toEqual(["Disallow: /"]);
+    expect(rulesFor(out, "OAI-SearchBot")).toEqual([
+      "Disallow: /api/",
+      "Allow: /",
+    ]);
+    expect(rulesFor(out, "*")).toEqual(["Disallow: /api/", "Allow: /"]);
+  });
+
   it("blocks every AI bot but keeps * open when allow=block-all-ai", () => {
     const out = buildRobots({ allow: "block-all-ai", sitemap: SITEMAP });
     for (const token of ROBOTS_TOKENS) {
@@ -151,6 +209,17 @@ describe("buildRobots", () => {
     }
     expect(out).not.toContain("Allow: /");
     expect(out).not.toContain("Sitemap:");
+  });
+
+  it("refuses to leave the * group out of disallow-all", () => {
+    expect(() =>
+      buildRobots({ allow: "disallow-all", omitWildcard: true }),
+    ).toThrow(/disallow-all/u);
+  });
+
+  it("throws on an unknown mode instead of opening the site", () => {
+    const allow = "disallow_all" as unknown as RobotsAllowMode;
+    expect(() => buildRobots({ allow })).toThrow(/disallow_all/u);
   });
 
   it("omits the * group when omitWildcard is set", () => {
