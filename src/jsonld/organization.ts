@@ -1,14 +1,26 @@
 import { z } from "zod";
 import { schemaId, url } from "./types.js";
 
-// A `Person` node from `person()`, or a `{ "@id" }` reference to one. The
-// input stays a plain record so `person()` output passes as is.
+// A `Person` node with a name, or a reference to one: `{ "@id" }`, optionally
+// typed `"@type": "Person"`. Any `@id` must be an absolute URL. The input
+// stays a plain record so `person()` output passes as is.
+const isFounder = (node: Record<string, unknown>): boolean => {
+  const { "@id": id, "@type": type, ...rest } = node;
+  if (id !== undefined && !url.safeParse(id).success) return false;
+  if (type === "Person" && typeof rest.name === "string" && rest.name !== "") {
+    return true;
+  }
+  return (
+    id !== undefined &&
+    Object.keys(rest).length === 0 &&
+    (type === undefined || type === "Person")
+  );
+};
+
 const founderSchema = z
   .record(z.string(), z.unknown())
   .refine(
-    (node) =>
-      (node["@type"] === "Person" && typeof node.name === "string") ||
-      (Object.keys(node).length === 1 && url.safeParse(node["@id"]).success),
+    isFounder,
     'must be a Person node from person() or an { "@id" } reference',
   );
 
@@ -19,6 +31,7 @@ const inputSchema = z.object({
   logo: url,
   description: z.string().optional(),
   sameAs: z.array(url).default([]),
+  /** A `Person` node from `person()`, or an `{ "@id" }` reference to one. */
   founder: founderSchema.optional(),
 });
 

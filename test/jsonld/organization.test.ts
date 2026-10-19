@@ -52,9 +52,22 @@ describe("organization", () => {
     expect(node.founder).toEqual({ "@id": "https://carrot.eco/#p" });
   });
 
+  it("accepts a founder given as a typed @id reference", () => {
+    const founder = { "@type": "Person", "@id": "https://carrot.eco/#p" };
+    const node = organization({
+      name: "Carrot",
+      url: "https://carrot.eco",
+      logo: "https://carrot.eco/logo.png",
+      founder,
+    });
+    expect(node.founder).toEqual(founder);
+  });
+
   it.each([
     [{}],
     [{ name: "Jane Doe" }],
+    [{ "@type": "Person", name: "" }],
+    [{ "@type": "Person", name: "Jane Doe", "@id": "/p" }],
     [{ "@type": "Organization", name: "Jane Doe" }],
     [{ "@id": "/p" }],
     [{ "@id": "https://carrot.eco/#p", name: "Jane Doe" }],
