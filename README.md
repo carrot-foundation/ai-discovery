@@ -171,7 +171,8 @@ findByVercelBotName("chatgpt-operator")?.intent; // "agent"
 ```
 
 Both search `AI_BOTS` and `AI_AGENTS` and return an `AIRegistryEntry`: an
-`AIBotEntry` when `robotsToken` is set, an `AIAgentEntry` otherwise. A user
+`AIBotEntry` when `robotsToken` is set, an `AIAgentEntry` otherwise. Narrow it
+with `entry.robotsToken !== undefined`; an `in` check does not narrow. A user
 agent is self-declared. Verify it (published IP ranges, reverse DNS, Web Bot
 Auth) before trusting it.
 
@@ -199,7 +200,15 @@ Version 2 changes the robots module:
   block breaks. A test that maps each block's first line to the rule on its
   second line now reads `# AI training crawlers` as the user agent and
   `User-agent: GPTBot` as its rule. Parse groups instead: every `User-agent`
-  line in a block shares the rules that follow them.
+  line in a block shares the rules that follow them. A blocked group carries
+  only `Disallow: /`; `disallowPaths` repeat in allowed groups alone, which
+  leaves every bot's effective policy as it was.
+
+- `AI_BOTS` is ordered by intent, so code that reads an entry by index gets a
+  different bot. Find entries by `robotsToken` instead.
+
+- `AI_BOTS`, `AI_AGENTS` and their entries are frozen. TypeScript already typed
+  them `readonly`; JavaScript code that mutated them now throws a `TypeError`.
 
 - `AIBotEntry` has new required fields: `name`, `intent`, `robotsToken`,
   `userAgentPatterns` and `source`. Code that builds its own entries must set

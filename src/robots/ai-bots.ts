@@ -88,7 +88,7 @@ export interface AIAgentEntry extends AIRegistryEntryBase {
   /**
    * Always absent. Declared so `robotsToken` reads on an
    * {@link AIRegistryEntry}, and checking it for `undefined` tells a bot from
-   * an agent.
+   * an agent. `"robotsToken" in entry` does not narrow the union.
    */
   readonly robotsToken?: never;
 }
