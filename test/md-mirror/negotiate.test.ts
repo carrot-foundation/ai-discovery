@@ -20,7 +20,30 @@ describe("prefersMarkdown", () => {
     ["text/markdown;q=0.9, text/html;q=0.9", false],
     ["text/markdown;q=0.5, text/html", false],
     ["text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", false],
-  ])("keeps HTML for %j (q-values, ties go to HTML)", (accept, expected) => {
+  ])(
+    "keeps HTML for %j (q-values, a tie between named ranges keeps HTML)",
+    (accept, expected) => {
+      expect(prefersMarkdown(accept)).toBe(expected);
+    },
+  );
+
+  // At equal weight above 0, a range naming text/markdown beats text/html
+  // matched only through text/* or */*. Two named ranges, or wildcards alone,
+  // keep HTML, and a Markdown weight of 0 never wins.
+  it.each([
+    ["text/markdown, */*", true],
+    ["*/*, text/markdown", true],
+    ["text/markdown, text/*", true],
+    ["text/markdown;q=0.5, */*;q=0.5", true],
+    ["text/markdown;q=0.5, text/*;q=0.5, */*;q=0.9", true],
+    ["text/html, text/markdown", false],
+    ["text/markdown;q=0.9, text/html", false],
+    ["text/markdown;q=0.5, text/*;q=0.5, text/html;q=0.5", false],
+    ["*/*", false],
+    ["text/*, */*", false],
+    ["text/markdown;q=0, */*;q=0", false],
+    ["text/markdown;q=0, text/*;q=0", false],
+  ])("breaks an equal weight by specificity for %j", (accept, expected) => {
     expect(prefersMarkdown(accept)).toBe(expected);
   });
 

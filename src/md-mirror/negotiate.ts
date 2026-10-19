@@ -99,18 +99,26 @@ const parseRange = (part: string): MediaRange | undefined => {
   return { type: type.toLowerCase(), subtype: subtype.toLowerCase(), q };
 };
 
+const EXPLICIT = 3;
+
 const specificity = (range: MediaRange, type: string, subtype: string) => {
-  if (range.type === type && range.subtype === subtype) return 3;
+  if (range.type === type && range.subtype === subtype) return EXPLICIT;
   if (range.type === type && range.subtype === "*") return 2;
   if (range.type === "*" && range.subtype === "*") return 1;
   return 0;
 };
 
+interface Weight {
+  /** Specificity of the range that set `q`; 0 when no range matches. */
+  readonly specificity: number;
+  readonly q: number;
+}
+
 // The most specific matching range sets the weight; a repeated range keeps
 // its highest weight. A type no range matches is not acceptable (0).
-const weightOf = (ranges: readonly MediaRange[], mediaType: string): number => {
+const weightOf = (ranges: readonly MediaRange[], mediaType: string): Weight => {
   const [type = "", subtype = ""] = mediaType.split("/");
-  let best = { specificity: 0, q: 0 };
+  let best: Weight = { specificity: 0, q: 0 };
   for (const range of ranges) {
     const s = specificity(range, type, subtype);
     if (s === 0 || s < best.specificity) continue;
@@ -119,24 +127,28 @@ const weightOf = (ranges: readonly MediaRange[], mediaType: string): number => {
         ? { specificity: s, q: range.q }
         : { specificity: s, q: Math.max(best.q, range.q) };
   }
-  return best.q;
+  return best;
 };
 
 /**
  * Decides from a request's `Accept` header whether the canonical URL should
  * answer with the page's Markdown instead of its HTML (RFC 9110 §12.5.1).
  *
- * Markdown wins only when the client weighs `text/markdown` strictly above
- * `text/html`. A tie, a wildcard alone, a malformed header or no header
- * keeps HTML, so browsers never get Markdown by accident. Ranges match on
- * type and subtype alone: media-type parameters other than `q` are ignored,
- * so `text/markdown;profile=x` counts as `text/markdown`. They are still
- * parsed, though: a parameter that is not `name=value` (RFC 9110 §5.6.6)
- * makes the header malformed. Ranges are read as sent: type and subtype take
- * ASCII token characters only and match case-insensitively on A-Z, and only
- * SP and HTAB count as whitespace (RFC 9110 §5.6.3), so an NBSP or a Kelvin
- * sign makes the header malformed. A response that varies on this must send
- * `Vary: Accept`.
+ * Markdown wins when the client weighs `text/markdown` strictly above
+ * `text/html`. At equal weight above 0, a range that names `text/markdown`
+ * beats `text/html` matched only through a wildcard (`text/*`, or the range
+ * for all media types), so an agent that names `text/markdown` next to a
+ * catch-all gets Markdown. Equal weight keeps HTML when both are named, or
+ * when both match through wildcards alone. A Markdown weight of 0, a
+ * malformed header or no header keeps HTML too, so browsers never get
+ * Markdown by accident. Ranges match on type and subtype alone: media-type
+ * parameters other than `q` are ignored, so `text/markdown;profile=x` counts
+ * as `text/markdown`. They are still parsed, though: a parameter that is not
+ * `name=value` (RFC 9110 §5.6.6) makes the header malformed. Ranges are read
+ * as sent: type and subtype take ASCII token characters only and match
+ * case-insensitively on A-Z, and only SP and HTAB count as whitespace
+ * (RFC 9110 §5.6.3), so an NBSP or a Kelvin sign makes the header malformed.
+ * A response that varies on this must send `Vary: Accept`.
  */
 export const prefersMarkdown = (accept: string | null | undefined): boolean => {
   if (accept === null || accept === undefined || trimOws(accept) === "") {
@@ -153,5 +165,12 @@ export const prefersMarkdown = (accept: string | null | undefined): boolean => {
     if (range === undefined) return false;
     ranges.push(range);
   }
-  return weightOf(ranges, "text/markdown") > weightOf(ranges, "text/html");
+  const markdown = weightOf(ranges, "text/markdown");
+  const html = weightOf(ranges, "text/html");
+  // Without this, `text/markdown;q=0, */*;q=0` would win the tie-break below.
+  if (markdown.q === 0) return false;
+  if (markdown.q !== html.q) return markdown.q > html.q;
+  // RFC 9110 leaves equal weights to the server. Naming Markdown while
+  // reaching HTML only through a catch-all is an explicit ask for Markdown.
+  return markdown.specificity === EXPLICIT && html.specificity < EXPLICIT;
 };

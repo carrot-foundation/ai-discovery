@@ -298,16 +298,20 @@ import { prefersMarkdown } from "@carrot-foundation/ai-discovery/md-mirror";
 
 prefersMarkdown("text/markdown"); // true
 prefersMarkdown("text/markdown, text/html;q=0.9"); // true
-prefersMarkdown("text/html, text/markdown"); // false: a tie keeps HTML
+prefersMarkdown("text/markdown, */*"); // true: named beats a wildcard
+prefersMarkdown("text/html, text/markdown"); // false: a named tie keeps HTML
 prefersMarkdown("*/*"); // false
 prefersMarkdown(null); // false
 ```
 
 It respects q-values and lets the most specific media range win. Markdown wins
-only when `text/markdown` weighs strictly more than `text/html`, so a tie, a
-wildcard alone, a header with any malformed range or a missing header keeps
-HTML. Ranges match on type and subtype alone: parameters other than `q` are
-ignored, so `text/markdown;profile=x` counts as `text/markdown`. They must
+when `text/markdown` weighs strictly more than `text/html`. At equal weight
+above 0, a range that names `text/markdown` beats `text/html` matched only
+through `text/*` or `*/*`, so `text/markdown, */*` gets Markdown. Equal weight
+keeps HTML when both are named, or when both match through wildcards alone. A
+Markdown weight of 0, a header with any malformed range or a missing header
+keeps HTML too. Ranges match on type and subtype alone: parameters other than
+`q` are ignored, so `text/markdown;profile=x` counts as `text/markdown`. They must
 still be well-formed `name=value` pairs, so `text/markdown;foo` is malformed
 and keeps HTML. The header is read as sent: type and subtype take ASCII token
 characters only and match case-insensitively on A-Z, and only space and tab
