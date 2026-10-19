@@ -4,11 +4,18 @@ interface MediaRange {
   readonly q: number;
 }
 
-// RFC 9110 §5.6.2 token characters. Input is lowercased first.
-const TOKEN = /^[!#$%&'*+.^_`|~0-9a-z-]+$/u;
+// RFC 9110 §5.6.2 token characters except `*`: RFC 6838 §4.2 names never
+// contain one, so a wildcard is only ever a whole component (see isMediaRange).
+// Input is lowercased first.
+const NAME = /^[!#$%&'+.^_`|~0-9a-z-]+$/u;
 
 // RFC 9110 §12.4.2: a weight is 0 to 1 with at most three decimals.
 const Q_VALUE = /^(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/u;
+
+// RFC 9110 §12.5.1: `*/*`, `type/*` or `type/subtype`.
+const isMediaRange = (type: string, subtype: string): boolean =>
+  (type === "*" && subtype === "*") ||
+  (NAME.test(type) && (subtype === "*" || NAME.test(subtype)));
 
 const parseRange = (part: string): MediaRange | undefined => {
   const [range = "", ...params] = part.split(";");
@@ -16,9 +23,7 @@ const parseRange = (part: string): MediaRange | undefined => {
     .trim()
     .toLowerCase()
     .split("/");
-  if (!TOKEN.test(type) || !TOKEN.test(subtype) || extra !== undefined) {
-    return undefined;
-  }
+  if (!isMediaRange(type, subtype) || extra !== undefined) return undefined;
   let q = 1;
   for (const param of params) {
     const [name = "", value = ""] = param.split("=");
