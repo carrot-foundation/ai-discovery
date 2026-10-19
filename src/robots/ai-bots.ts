@@ -128,7 +128,6 @@ const APPLE_BOTS = "https://support.apple.com/en-us/119829";
 const META_BOTS =
   "https://developers.facebook.com/docs/sharing/webmasters/web-crawlers/";
 const AMAZON_BOTS = "https://developer.amazon.com/amazonbot";
-const VERCEL_BOT_DIRECTORY = "https://vercel.com/docs/bot-management";
 
 /**
  * Canonical registry of the AI bots robots.txt can address, ordered by
@@ -313,10 +312,10 @@ export const AI_BOTS: readonly AIBotEntry[] = Object.freeze([
 /**
  * AI agents that act on a site for a person and that no robots.txt token
  * addresses, so `buildRobots()` never names them; classification reads them
- * alongside {@link AI_BOTS}. Each entry was checked on 2026-10-19 against the
- * documentation in `source`: the operator's own where it publishes one,
- * otherwise the closest primary reference (Vercel's verified-bots directory
- * for Cursor).
+ * alongside {@link AI_BOTS}. Each entry was checked on 2026-10-19 against its
+ * operator's documentation in `source`. An agent that only Vercel's directory
+ * or third-party lists describe, such as Cursor's `cursor-server`, stays out
+ * until its operator documents it.
  */
 export const AI_AGENTS: readonly AIAgentEntry[] = Object.freeze([
   agent({
@@ -338,14 +337,5 @@ export const AI_AGENTS: readonly AIAgentEntry[] = Object.freeze([
     vercelBotName: "chatgpt-operator",
     source:
       "https://help.openai.com/en/articles/11845367-chatgpt-agent-allowlisting",
-  }),
-  agent({
-    // Cursor reaching MCP servers for a user's coding agent.
-    name: "Cursor",
-    operator: "Cursor",
-    intent: "agent",
-    userAgentPatterns: [],
-    vercelBotName: "cursor-server",
-    source: VERCEL_BOT_DIRECTORY,
   }),
 ]);

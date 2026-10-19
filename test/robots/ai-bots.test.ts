@@ -125,7 +125,6 @@ describe("AI_AGENTS", () => {
     expect(AI_AGENTS.map((a) => a.name)).toEqual([
       "Google-Agent",
       "ChatGPT agent",
-      "Cursor",
     ]);
     AI_AGENTS.forEach((a) => {
       expect(a.intent).toBe("agent");
@@ -151,7 +150,6 @@ describe("AI_AGENTS", () => {
     expect(byName("Google-Agent").userAgentPatterns).toEqual(["Google-Agent"]);
     expect(byName("ChatGPT agent").userAgentPatterns).toEqual([]);
     expect(byName("ChatGPT agent").vercelBotName).toBe("chatgpt-operator");
-    expect(byName("Cursor").vercelBotName).toBe("cursor-server");
   });
 });
 
@@ -168,6 +166,13 @@ describe("AI_BOTS and AI_AGENTS", () => {
       ...b.userAgentPatterns,
     ]);
     expect(identifiers.join("\n")).not.toMatch(/bytespider|bytedance/iu);
+  });
+
+  // Same rule: Cursor documents no agent identifier, and `cursor-server` is
+  // described only by Vercel's directory and third-party lists.
+  it("carries no entry for Cursor until Cursor documents its agent", () => {
+    expect(ENTRIES.map((b) => b.operator)).not.toContain("Cursor");
+    expect(ENTRIES.map((b) => b.vercelBotName)).not.toContain("cursor-server");
   });
 
   it("classifies every bot and agent on the intent axis", () => {
@@ -197,7 +202,6 @@ describe("AI_BOTS and AI_AGENTS", () => {
     ["Amzn-User", "user-fetch"],
     ["Google-Agent", "agent"],
     ["ChatGPT agent", "agent"],
-    ["Cursor", "agent"],
   ])("classifies %s as %s", (name, intent) => {
     expect(byName(name).intent).toBe(intent);
   });

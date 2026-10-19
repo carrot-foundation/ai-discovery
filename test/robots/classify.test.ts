@@ -135,7 +135,6 @@ describe("findByVercelBotName", () => {
     ["oai-searchbot", "OAI-SearchBot", "search-index"],
     ["meta-externalfetcher", "Meta-ExternalFetcher", "user-fetch"],
     ["chatgpt-operator", "ChatGPT agent", "agent"],
-    ["cursor-server", "Cursor", "agent"],
     ["google-agent", "Google-Agent", "agent"],
     ["ccbot", "CCBot", "training"],
   ])("maps %s", (botName, name, intent) => {
@@ -149,14 +148,15 @@ describe("findByVercelBotName", () => {
   });
 
   it("returns the AI_AGENTS entry for an agent", () => {
-    expect(findByVercelBotName("cursor-server")).toBe(
-      AI_AGENTS.find((a) => a.name === "Cursor"),
+    expect(findByVercelBotName("chatgpt-operator")).toBe(
+      AI_AGENTS.find((a) => a.name === "ChatGPT agent"),
     );
   });
 
   it("returns undefined for unknown, empty and missing names", () => {
     expect(findByVercelBotName("googlebot")).toBeUndefined();
     expect(findByVercelBotName("applebot")).toBeUndefined();
+    expect(findByVercelBotName("cursor-server")).toBeUndefined();
     expect(findByVercelBotName("")).toBeUndefined();
     expect(findByVercelBotName(null)).toBeUndefined();
     expect(findByVercelBotName(undefined)).toBeUndefined();

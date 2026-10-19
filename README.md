@@ -134,8 +134,8 @@ Safari search: it is not an AI bot. Apple's AI training opt-out is the
 `Applebot-Extended` token, which every mode names.
 
 robots.txt only binds crawlers that honor it. Fetchers and agents acting on a
-user's request may not, and the agents in `AI_AGENTS` (Google-Agent, ChatGPT
-agent, Cursor) have no robots token, so no mode names them. `disallow-all`
+user's request may not, and the agents in `AI_AGENTS` (Google-Agent and
+ChatGPT agent) have no robots token, so no mode names them. `disallow-all`
 cannot be combined with `omitWildcard`, and an unknown `allow` value throws.
 
 ### Classify AI bot traffic
@@ -225,8 +225,8 @@ Version 2 changes the robots module:
   combined with `omitWildcard`. `RobotsAllowMode` gains `disallow-all`, so an
   exhaustive `switch` over it needs the new case.
 
-- Agents without a robots.txt token (Google-Agent, ChatGPT agent, Cursor) live
-  in `AI_AGENTS`, not `AI_BOTS`.
+- Agents without a robots.txt token (Google-Agent, ChatGPT agent) are listed in
+  the new `AI_AGENTS`, not in `AI_BOTS`.
 
 - `userAgent` and `kind` remain on `AIBotEntry`, deprecated in favor of
   `robotsToken` and `intent`.
