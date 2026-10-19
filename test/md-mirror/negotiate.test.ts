@@ -71,6 +71,8 @@ describe("prefersMarkdown", () => {
     'text/markdown;profile="a, text/html;q=0.5',
     'text/markdown;profile="a\\',
     "text/markdown;q=0.9=x, text/html;q=0.5",
+    "text/markdown;q, text/html;q=0.5",
+    "text/markdown/x, text/html;q=0.1",
   ])("keeps HTML when any range in %j is malformed", (accept) => {
     expect(prefersMarkdown(accept)).toBe(false);
   });
@@ -97,6 +99,7 @@ describe("prefersMarkdown", () => {
       prefersMarkdown("text/markdown;charset=utf-8;q=0.9, text/html;q=0.5"),
     ).toBe(true);
     expect(prefersMarkdown("text/markdown;Q=0.9, text/html;q=0.5")).toBe(true);
+    expect(prefersMarkdown("text/markdown;foo, text/html;q=0.5")).toBe(true);
   });
 
   it.each([
