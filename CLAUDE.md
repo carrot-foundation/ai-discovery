@@ -50,7 +50,7 @@ src/
   robots/              # buildRobots() + AI_BOTS registry (intent: training | search-index | user-fetch | agent | ai-browser) + classifyUserAgent()
   identity/            # canonical Carrot Organization and founder (CARROT_ORGANIZATION, carrotOrganization())
   llms-txt/            # buildIndex() / buildFull() generators
-  md-mirror/           # createMdMirrorRoute() — Next.js App Router handler factory
+  md-mirror/           # createMdMirrorRoute() — Next.js App Router handler factory + prefersMarkdown() Accept negotiation
 ```
 
 Conventions:

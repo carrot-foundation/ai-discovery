@@ -64,6 +64,7 @@ src/
   index.ts
   jsonld/
   robots/
+  identity/
   llms-txt/
   md-mirror/
 ```

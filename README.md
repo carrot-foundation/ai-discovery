@@ -49,20 +49,15 @@ output for consumers that still use `require()`.
 ### Add JSON-LD to a page
 
 ```typescript
+import { carrotOrganization } from "@carrot-foundation/ai-discovery/identity";
 import {
   article,
   compose,
-  organization,
   website,
 } from "@carrot-foundation/ai-discovery/jsonld";
 
 const graph = compose([
-  organization({
-    name: "Carrot Foundation",
-    url: "https://carrot.eco",
-    logo: "https://carrot.eco/logo.png",
-    description: "Public infrastructure for environmental assets.",
-  }),
+  carrotOrganization(),
   website({
     name: "Carrot Documentation",
     url: "https://docs.carrot.eco",
@@ -77,8 +72,8 @@ const graph = compose([
     datePublished: "2026-04-15",
     dateModified: "2026-05-01",
     author: {
-      name: "Carrot Foundation",
-      sameAs: ["https://carrot.eco"],
+      name: "Jane Doe",
+      url: "https://example.com/jane",
     },
     inLanguage: "en",
     image: "https://docs.carrot.eco/og/docs/concepts/dmrv.png",
@@ -119,7 +114,7 @@ export function GET() {
 | --------------- | ------------------------------------------------------------------------------- |
 | `all-ai-bots`   | Allows every known AI bot, each named explicitly. The policy for content sites. |
 | `fetchers-only` | Blocks training crawlers and allows search indexes and user fetchers.           |
-| `block-all-ai`  | Blocks every known AI bot; other crawlers stay allowed.                         |
+| `block-all-ai`  | Blocks every AI bot that has a robots.txt token; other crawlers stay allowed.   |
 | `disallow-all`  | Closes the whole site to every crawler, for authenticated apps.                 |
 
 The output has one group per bot intent, each headed by a comment, after the
@@ -136,6 +131,11 @@ buildRobots({ allow: "disallow-all" });
 
 `block-all-ai` also blocks `Applebot`, which powers Spotlight, Siri and Safari
 search as well as Apple's AI features.
+
+robots.txt only binds crawlers that honor it. Fetchers and agents acting on a
+user's request may not, and agents without a robots token (Google-Agent,
+ChatGPT agent, Cursor) are never named. `disallow-all` cannot be combined with
+`omitWildcard`, and an unknown `allow` value throws.
 
 ### Classify AI bot traffic
 
@@ -171,9 +171,9 @@ findByVercelBotName("chatgpt-operator")?.intent; // "agent"
 A user agent is self-declared. Verify it (published IP ranges, reverse DNS, Web
 Bot Auth) before trusting it.
 
-The 1.x fields remain on every entry and are deprecated: `userAgent` equals
-`robotsToken` (or `name` when there is none), and `kind` folds `agent` and
-`ai-browser` into `user-fetch`.
+The fields from 1.2 and earlier remain on every entry and are deprecated:
+`userAgent` equals `robotsToken`, or the display name for agents without one,
+and `kind` folds `agent` and `ai-browser` into `user-fetch`.
 
 ### Build llms.txt files
 
