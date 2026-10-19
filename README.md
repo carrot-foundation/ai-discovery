@@ -148,7 +148,7 @@ ChatGPT agent, Cursor) are never named. `disallow-all` cannot be combined with
 | `robotsToken`       | The robots.txt `User-agent` token, when the operator documents one.                         |
 | `userAgentPatterns` | Case-insensitive substrings that identify the bot in a request's `User-Agent` header.       |
 | `vercelBotName`     | The value of Vercel's `bot_name` dimension, when Vercel's verified-bots directory lists it. |
-| `source`            | The operator documentation the entry was checked against.                                   |
+| `source`            | The documentation the entry was checked against: the operator's own where it publishes one. |
 
 Robots-only control tokens such as `Google-Extended` and `Applebot-Extended`
 have a `robotsToken` but no `userAgentPatterns`: they never appear in requests.
@@ -260,8 +260,8 @@ prefersMarkdown(null); // false
 
 It respects q-values and lets the most specific media range win. Markdown wins
 only when `text/markdown` weighs strictly more than `text/html`, so a tie, a
-wildcard alone or a missing header keeps HTML. Send `Vary: Accept` on any
-response that depends on it.
+wildcard alone, a header with any malformed range or a missing header keeps
+HTML. Send `Vary: Accept` on any response that depends on it.
 
 ### Describe Carrot the same way everywhere
 
