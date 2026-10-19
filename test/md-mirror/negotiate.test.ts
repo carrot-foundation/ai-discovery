@@ -30,6 +30,8 @@ describe("prefersMarkdown", () => {
     ["text/markdown;q=0.5, text/*", false],
     ["text/*;q=0.5, text/markdown", true],
     ["*/*;q=0.9, text/markdown;q=0.2", false],
+    ["text/*;q=0.1, */*;q=0.9, text/markdown;q=0.5", true],
+    ["text/html;q=0, */*;q=0.5, text/markdown;q=0.3", true],
   ])("lets the most specific range win for %j", (accept, expected) => {
     expect(prefersMarkdown(accept)).toBe(expected);
   });
@@ -52,20 +54,36 @@ describe("prefersMarkdown", () => {
     expect(prefersMarkdown("   ")).toBe(false);
   });
 
-  it("ignores malformed ranges instead of trusting them", () => {
-    expect(prefersMarkdown("text/markdown;q=abc")).toBe(false);
-    expect(prefersMarkdown("text/markdown;q=1.5")).toBe(false);
-    expect(prefersMarkdown("markdown, text/html;q=0.1")).toBe(false);
-    expect(prefersMarkdown("text/markdown;q=abc, text/markdown;q=0.4")).toBe(
-      true,
-    );
+  it.each([
+    "text/markdown;q=abc",
+    "text/markdown;q=1.5",
+    "markdown, text/html;q=0.1",
+    "text/markdown;q=abc, text/markdown;q=0.4",
+    "text/html;q=abc, text/markdown",
+    "text/html;q=.9, text/markdown",
+  ])("keeps HTML when any range in %j is malformed", (accept) => {
+    expect(prefersMarkdown(accept)).toBe(false);
   });
 
-  it("takes the highest q when the same range repeats", () => {
-    expect(
-      prefersMarkdown(
-        "text/markdown;q=0.2, text/markdown;q=0.9, text/html;q=0.5",
-      ),
-    ).toBe(true);
+  it("skips empty list elements", () => {
+    expect(prefersMarkdown("text/markdown,, text/html;q=0.5,")).toBe(true);
   });
+
+  it("reads parameters other than q without letting them change the weight", () => {
+    expect(
+      prefersMarkdown("text/markdown;charset=utf-8;q=0.9, text/html;q=0.5"),
+    ).toBe(true);
+    expect(prefersMarkdown("text/markdown;Q=0.9, text/html;q=0.5")).toBe(true);
+  });
+
+  it.each([
+    ["text/markdown;q=0.2, text/markdown;q=0.9, text/html;q=0.5", true],
+    ["text/markdown;q=0.9, text/markdown;q=0.2, text/html;q=0.5", true],
+    ["text/html;q=0.1, text/html;q=0.8, text/markdown;q=0.5", false],
+  ])(
+    "takes the highest q when the same range repeats in %j",
+    (accept, expected) => {
+      expect(prefersMarkdown(accept)).toBe(expected);
+    },
+  );
 });

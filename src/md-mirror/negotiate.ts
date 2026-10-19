@@ -7,18 +7,18 @@ interface MediaRange {
 // RFC 9110 §12.4.2: a weight is 0 to 1 with at most three decimals.
 const Q_VALUE = /^(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/u;
 
-const parseRange = (part: string): MediaRange[] => {
+const parseRange = (part: string): MediaRange | undefined => {
   const [range = "", ...params] = part.split(";");
   const [type, subtype, extra] = range.trim().toLowerCase().split("/");
-  if (!type || !subtype || extra !== undefined) return [];
+  if (!type || !subtype || extra !== undefined) return undefined;
   let q = 1;
   for (const param of params) {
     const [name = "", value = ""] = param.split("=");
     if (name.trim().toLowerCase() !== "q") continue;
-    if (!Q_VALUE.test(value.trim())) return [];
+    if (!Q_VALUE.test(value.trim())) return undefined;
     q = Number(value.trim());
   }
-  return [{ type, subtype, q }];
+  return { type, subtype, q };
 };
 
 const specificity = (range: MediaRange, type: string, subtype: string) => {
@@ -57,6 +57,14 @@ export const prefersMarkdown = (accept: string | null | undefined): boolean => {
   if (accept === null || accept === undefined || accept.trim() === "") {
     return false;
   }
-  const ranges = accept.split(",").flatMap(parseRange);
+  const ranges: MediaRange[] = [];
+  for (const part of accept.split(",")) {
+    if (part.trim() === "") continue;
+    const range = parseRange(part);
+    // Dropping one bad range could zero out text/html and flip the answer,
+    // so a header we cannot fully read never asks for Markdown.
+    if (range === undefined) return false;
+    ranges.push(range);
+  }
   return weightOf(ranges, "text/markdown") > weightOf(ranges, "text/html");
 };
