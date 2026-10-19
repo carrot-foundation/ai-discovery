@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { prefersMarkdown } from "../../src/md-mirror/negotiate.js";
 
-// cspell:ignore apng
-
 describe("prefersMarkdown", () => {
   it.each([
     ["text/markdown", true],
@@ -100,8 +98,22 @@ describe("prefersMarkdown", () => {
     ],
     ["a space before the equals sign", "text/markdown;q =0.9, text/html;q=0.5"],
     ["a space after the equals sign", "text/markdown;q= 0.9, text/html;q=0.5"],
+    ["a tab before the equals sign", "text/markdown;q\t=0.9, text/html;q=0.5"],
     ["a Kelvin sign in a name", "text/markdown;\u212A=x, text/html;q=0.5"],
     ["a long s in a value", "text/markdown;p=\u017F, text/html;q=0.5"],
+    ["a DEL inside a quote", 'text/markdown;p="a\u007Fb", text/html;q=0.5'],
+    [
+      "a non-byte character in a quote",
+      'text/markdown;p="a\u0100", text/html;q=0.5',
+    ],
+    [
+      "an escaped control character",
+      'text/markdown;p="a\\\u0001", text/html;q=0.5',
+    ],
+    [
+      "an unescaped quote inside a quote",
+      'text/markdown;p="a""b", text/html;q=0.5',
+    ],
   ])("keeps HTML for %s in %j", (_label, accept) => {
     expect(prefersMarkdown(accept)).toBe(false);
   });
@@ -141,6 +153,16 @@ describe("prefersMarkdown", () => {
     expect(
       prefersMarkdown('text/markdown;p="a\\\tb \u00e9", text/html;q=0.5'),
     ).toBe(true);
+  });
+
+  it.each([
+    "text/markdown;!#$%&'*+-.^_`|~09AZaz=!#$%&'*+-.^_`|~09AZaz, text/html;q=0.5",
+    'text/markdown;p="a\tb", text/html;q=0.5',
+    'text/markdown;p="\\\u00e9", text/html;q=0.5',
+    'text/markdown;p="a\\"", text/html;q=0.5',
+    'text/markdown;p="a\\\\", text/html;q=0.5',
+  ])("accepts every token character and quoted-string form in %j", (accept) => {
+    expect(prefersMarkdown(accept)).toBe(true);
   });
 
   it.each([
