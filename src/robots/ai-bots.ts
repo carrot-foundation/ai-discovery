@@ -35,17 +35,16 @@ export const AI_BOT_INTENTS: readonly AIBotIntent[] = Object.freeze([
  */
 export type AIBotKind = "training" | "search-index" | "user-fetch";
 
-export interface AIBotEntry {
+/**
+ * Fields every registry entry carries, whether robots.txt can address it
+ * ({@link AIBotEntry}) or not ({@link AIAgentEntry}).
+ */
+export interface AIRegistryEntryBase {
   /** The bot's name as its operator publishes it. */
   readonly name: string;
   /** Operator (informational). */
   readonly operator: string;
   readonly intent: AIBotIntent;
-  /**
-   * Product token a robots.txt `User-agent` line addresses. Omitted when the
-   * operator documents no robots.txt control for the bot.
-   */
-  readonly robotsToken?: string;
   /**
    * Case-insensitive substrings that identify the bot in a request's
    * `User-Agent` header. Empty when nothing in the header identifies it:
@@ -64,10 +63,14 @@ export interface AIBotEntry {
    * publishes one.
    */
   readonly source: string;
+}
+
+/** An AI bot its operator lets robots.txt address, listed in {@link AI_BOTS}. */
+export interface AIBotEntry extends AIRegistryEntryBase {
+  /** Product token a robots.txt `User-agent` line addresses. */
+  readonly robotsToken: string;
   /**
-   * `robotsToken` when the bot has one, otherwise `name`. Bots without a
-   * robots token (agents such as `ChatGPT agent`) carry their display name
-   * here, which is neither a robots.txt token nor a user agent string.
+   * The robots.txt token, as in 1.2: always equal to `robotsToken`.
    *
    * @deprecated Use `robotsToken` for robots.txt and `userAgentPatterns` or
    * `vercelBotName` to classify traffic.
@@ -76,6 +79,22 @@ export interface AIBotEntry {
   /** @deprecated Use `intent`. */
   readonly kind: AIBotKind;
 }
+
+/**
+ * An AI agent no robots.txt token addresses, listed in {@link AI_AGENTS}.
+ * `buildRobots()` never names one.
+ */
+export interface AIAgentEntry extends AIRegistryEntryBase {
+  /**
+   * Always absent. Declared so `robotsToken` reads on an
+   * {@link AIRegistryEntry}, and checking it for `undefined` tells a bot from
+   * an agent.
+   */
+  readonly robotsToken?: never;
+}
+
+/** Any entry of {@link AI_BOTS} or {@link AI_AGENTS}. */
+export type AIRegistryEntry = AIBotEntry | AIAgentEntry;
 
 type AIBotDefinition = Omit<AIBotEntry, "userAgent" | "kind">;
 
@@ -86,8 +105,14 @@ const bot = (definition: AIBotDefinition): AIBotEntry =>
   Object.freeze({
     ...definition,
     userAgentPatterns: Object.freeze([...definition.userAgentPatterns]),
-    userAgent: definition.robotsToken ?? definition.name,
+    userAgent: definition.robotsToken,
     kind: legacyKind(definition.intent),
+  });
+
+const agent = (definition: AIAgentEntry): AIAgentEntry =>
+  Object.freeze({
+    ...definition,
+    userAgentPatterns: Object.freeze([...definition.userAgentPatterns]),
   });
 
 const OPENAI_BOTS = "https://developers.openai.com/api/docs/bots";
@@ -106,16 +131,16 @@ const AMAZON_BOTS = "https://developer.amazon.com/amazonbot";
 const VERCEL_BOT_DIRECTORY = "https://vercel.com/docs/bot-management";
 
 /**
- * Canonical registry of AI bots, ordered by intent. Each entry was checked on
- * 2026-10-19 against the documentation in `source`: the operator's own where
- * it publishes one, otherwise the closest primary reference (Vercel's
- * verified-bots directory for Cursor). A bot that only unverified crawler
- * lists describe stays out: `fetchers-only` would otherwise block it on a
- * claim nobody checked.
+ * Canonical registry of the AI bots robots.txt can address, ordered by
+ * intent. Each entry was checked on 2026-10-19 against its operator's
+ * documentation in `source`. A bot that only unverified crawler lists
+ * describe stays out: `fetchers-only` would otherwise block it on a claim
+ * nobody checked. Agents without a robots.txt token live in
+ * {@link AI_AGENTS}.
  *
- * Update with care: an entry with a `robotsToken` changes the output of
- * `buildRobots()` for every consumer, and log classification reads
- * `userAgentPatterns` and `vercelBotName`.
+ * Update with care: every entry changes the output of `buildRobots()` for
+ * every consumer, and log classification reads `userAgentPatterns` and
+ * `vercelBotName`.
  */
 export const AI_BOTS: readonly AIBotEntry[] = Object.freeze([
   bot({
@@ -212,17 +237,6 @@ export const AI_BOTS: readonly AIBotEntry[] = Object.freeze([
     source: PERPLEXITY_BOTS,
   }),
   bot({
-    // Powers Spotlight, Siri and Safari search; training is controlled
-    // separately through Applebot-Extended.
-    name: "Applebot",
-    operator: "Apple",
-    intent: "search-index",
-    robotsToken: "Applebot",
-    userAgentPatterns: ["Applebot"],
-    vercelBotName: "applebot",
-    source: APPLE_BOTS,
-  }),
-  bot({
     name: "Amzn-SearchBot",
     operator: "Amazon",
     intent: "search-index",
@@ -294,7 +308,18 @@ export const AI_BOTS: readonly AIBotEntry[] = Object.freeze([
     userAgentPatterns: ["Amzn-User"],
     source: AMAZON_BOTS,
   }),
-  bot({
+]);
+
+/**
+ * AI agents that act on a site for a person and that no robots.txt token
+ * addresses, so `buildRobots()` never names them; classification reads them
+ * alongside {@link AI_BOTS}. Each entry was checked on 2026-10-19 against the
+ * documentation in `source`: the operator's own where it publishes one,
+ * otherwise the closest primary reference (Vercel's verified-bots directory
+ * for Cursor).
+ */
+export const AI_AGENTS: readonly AIAgentEntry[] = Object.freeze([
+  agent({
     // A user-triggered fetcher: Google publishes no robots.txt token for it.
     name: "Google-Agent",
     operator: "Google",
@@ -303,7 +328,7 @@ export const AI_BOTS: readonly AIBotEntry[] = Object.freeze([
     vercelBotName: "google-agent",
     source: GOOGLE_USER_TRIGGERED_FETCHERS,
   }),
-  bot({
+  agent({
     // Sends a browser user agent and signs requests with Web Bot Auth, so
     // only the verifying edge (Vercel's `chatgpt-operator`) can name it.
     name: "ChatGPT agent",
@@ -314,7 +339,7 @@ export const AI_BOTS: readonly AIBotEntry[] = Object.freeze([
     source:
       "https://help.openai.com/en/articles/11845367-chatgpt-agent-allowlisting",
   }),
-  bot({
+  agent({
     // Cursor reaching MCP servers for a user's coding agent.
     name: "Cursor",
     operator: "Cursor",

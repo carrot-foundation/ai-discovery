@@ -85,6 +85,8 @@ src/
   `src/robots/ai-bots.ts` with the correct `intent`, keeping the robots.txt
   token (`robotsToken`) apart from request user agent patterns
   (`userAgentPatterns`), and cite the operator's documentation in `source`.
+  `AI_BOTS` takes only bots with a documented `robotsToken`; agents without
+  one go in `AI_AGENTS`, which `buildRobots()` never names.
 - Mirror tests under `test/<module>/<file>.test.ts` for source files under
   `src/<module>/<file>.ts`. Vitest only picks up `test/**/*.test.ts`.
 

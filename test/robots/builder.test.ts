@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AI_BOTS } from "../../src/robots/ai-bots.js";
+import { AI_AGENTS, AI_BOTS } from "../../src/robots/ai-bots.js";
 import { buildRobots, type RobotsAllowMode } from "../../src/robots/builder.js";
 
 interface Group {
@@ -37,9 +37,14 @@ const rulesFor = (robots: string, userAgent: string): readonly string[] => {
   return group.rules;
 };
 
-const ROBOTS_TOKENS = AI_BOTS.flatMap((b) =>
-  b.robotsToken === undefined ? [] : [b.robotsToken],
-);
+const ROBOTS_TOKENS = AI_BOTS.map((b) => b.robotsToken);
+
+const ALLOW_MODES: readonly RobotsAllowMode[] = [
+  "all-ai-bots",
+  "fetchers-only",
+  "block-all-ai",
+  "disallow-all",
+];
 
 describe("buildRobots", () => {
   const SITEMAP = "https://docs.carrot.eco/sitemap.xml";
@@ -78,21 +83,37 @@ describe("buildRobots", () => {
     );
   });
 
-  it.each<RobotsAllowMode>([
-    "all-ai-bots",
-    "fetchers-only",
-    "block-all-ai",
-    "disallow-all",
-  ])("names no Bytespider group when allow=%s", (allow) => {
+  it.each(ALLOW_MODES)("names no Bytespider group when allow=%s", (allow) => {
     expect(buildRobots({ allow })).not.toMatch(/bytespider/iu);
   });
 
-  it("addresses every bot that has a robots token, and only those", () => {
+  // Applebot is Apple's general crawler; Applebot-Extended is the AI opt-out.
+  it.each(ALLOW_MODES)(
+    "names Applebot-Extended but never Applebot when allow=%s",
+    (allow) => {
+      const userAgents = parseGroups(buildRobots({ allow })).flatMap(
+        (g) => g.userAgents,
+      );
+      expect(userAgents).toContain("Applebot-Extended");
+      expect(userAgents).not.toContain("Applebot");
+    },
+  );
+
+  it("addresses every bot in AI_BOTS, and only those", () => {
     const out = buildRobots({ allow: "all-ai-bots", sitemap: SITEMAP });
     const userAgents = parseGroups(out).flatMap((g) => g.userAgents);
     expect([...userAgents].sort()).toEqual(["*", ...ROBOTS_TOKENS].sort());
-    expect(out).not.toContain("Google-Agent");
   });
+
+  it.each(ALLOW_MODES)(
+    "never names an agent from AI_AGENTS when allow=%s",
+    (allow) => {
+      const out = buildRobots({ allow });
+      for (const agent of AI_AGENTS) {
+        expect(out).not.toContain(agent.name);
+      }
+    },
+  );
 
   describe("D2 policy for content sites (all-ai-bots)", () => {
     const out = buildRobots({
@@ -140,7 +161,6 @@ describe("buildRobots", () => {
         "OAI-SearchBot",
         "Claude-SearchBot",
         "PerplexityBot",
-        "Applebot",
         "Amzn-SearchBot",
         "Meta-WebIndexer",
         "DuckAssistBot",

@@ -10,13 +10,14 @@ const ALLOW_MODES = [
 /**
  * - `all-ai-bots`: every AI bot allowed, each one named explicitly.
  * - `fetchers-only`: training crawlers blocked, everything else allowed.
- * - `block-all-ai`: every AI bot with a robots.txt token blocked; other
- *   crawlers stay allowed.
+ * - `block-all-ai`: every AI bot in `AI_BOTS` blocked; other crawlers stay
+ *   allowed.
  * - `disallow-all`: the whole site closed to every crawler, for
  *   authenticated apps with nothing to index.
  *
  * User-triggered fetchers and agents act for a person in real time and may
- * not honor robots.txt; agents without a token are never named.
+ * not honor robots.txt. Only `AI_BOTS` entries are named: the agents in
+ * `AI_AGENTS` have no robots.txt token.
  */
 export type RobotsAllowMode = (typeof ALLOW_MODES)[number];
 
@@ -91,10 +92,8 @@ export const buildRobots = ({
   }
 
   for (const intent of AI_BOT_INTENTS) {
-    const tokens = AI_BOTS.flatMap((bot) =>
-      bot.intent === intent && bot.robotsToken !== undefined
-        ? [bot.robotsToken]
-        : [],
+    const tokens = AI_BOTS.filter((bot) => bot.intent === intent).map(
+      (bot) => bot.robotsToken,
     );
     if (tokens.length === 0) continue;
     groups.push([

@@ -114,7 +114,7 @@ export function GET() {
 | --------------- | ------------------------------------------------------------------------------- |
 | `all-ai-bots`   | Allows every known AI bot, each named explicitly. The policy for content sites. |
 | `fetchers-only` | Blocks training crawlers and allows search indexes and user fetchers.           |
-| `block-all-ai`  | Blocks every AI bot that has a robots.txt token; other crawlers stay allowed.   |
+| `block-all-ai`  | Blocks every bot in `AI_BOTS`; other crawlers stay allowed.                     |
 | `disallow-all`  | Closes the whole site to every crawler, for authenticated apps.                 |
 
 The output has one group per bot intent, each headed by a comment, after the
@@ -129,23 +129,25 @@ buildRobots({ allow: "disallow-all" });
 // ...one `Disallow: /` group per AI bot intent
 ```
 
-`block-all-ai` also blocks `Applebot`, which powers Spotlight, Siri and Safari
-search as well as Apple's AI features.
+No mode names `Applebot`, Apple's general crawler behind Spotlight, Siri and
+Safari search: it is not an AI bot. Apple's AI training opt-out is the
+`Applebot-Extended` token, which every mode names.
 
 robots.txt only binds crawlers that honor it. Fetchers and agents acting on a
-user's request may not, and agents without a robots token (Google-Agent,
-ChatGPT agent, Cursor) are never named. `disallow-all` cannot be combined with
-`omitWildcard`, and an unknown `allow` value throws.
+user's request may not, and the agents in `AI_AGENTS` (Google-Agent, ChatGPT
+agent, Cursor) have no robots token, so no mode names them. `disallow-all`
+cannot be combined with `omitWildcard`, and an unknown `allow` value throws.
 
 ### Classify AI bot traffic
 
-`AI_BOTS` is the single registry of AI bots. Each entry carries:
+`AI_BOTS` lists the AI bots robots.txt can address, and `AI_AGENTS` the AI
+agents it cannot. Entries in both carry:
 
 | Field               | Meaning                                                                                     |
 | ------------------- | ------------------------------------------------------------------------------------------- |
 | `name`, `operator`  | The bot as its operator names it.                                                           |
 | `intent`            | `training`, `search-index`, `user-fetch`, `agent`, or `ai-browser` (`AI_BOT_INTENTS`).      |
-| `robotsToken`       | The robots.txt `User-agent` token, when the operator documents one.                         |
+| `robotsToken`       | The robots.txt `User-agent` token. `AI_BOTS` entries only.                                  |
 | `userAgentPatterns` | Case-insensitive substrings that identify the bot in a request's `User-Agent` header.       |
 | `vercelBotName`     | The value of Vercel's `bot_name` dimension, when Vercel's verified-bots directory lists it. |
 | `source`            | The documentation the entry was checked against: the operator's own where it publishes one. |
@@ -168,12 +170,55 @@ classifyUserAgent(request.headers.get("user-agent"))?.intent;
 findByVercelBotName("chatgpt-operator")?.intent; // "agent"
 ```
 
-A user agent is self-declared. Verify it (published IP ranges, reverse DNS, Web
-Bot Auth) before trusting it.
+Both search `AI_BOTS` and `AI_AGENTS` and return an `AIRegistryEntry`: an
+`AIBotEntry` when `robotsToken` is set, an `AIAgentEntry` otherwise. A user
+agent is self-declared. Verify it (published IP ranges, reverse DNS, Web Bot
+Auth) before trusting it.
 
-The fields from 1.2 and earlier remain on every entry and are deprecated:
-`userAgent` equals `robotsToken`, or the display name for agents without one,
-and `kind` folds `agent` and `ai-browser` into `user-fetch`.
+The fields from 1.2 remain on every `AI_BOTS` entry and are deprecated:
+`userAgent` equals `robotsToken`, and `kind` folds `agent` and `ai-browser`
+into `user-fetch`. `AI_AGENTS` entries carry neither.
+
+### Migrating from 1.x
+
+Version 2 changes the robots module:
+
+- `buildRobots()` emits one group per bot intent instead of one block per bot.
+  Each group opens with a `#` comment line and lists several `User-agent` lines
+  before its rules, as RFC 9309 allows:
+
+  ```text
+  # AI training crawlers
+  User-agent: GPTBot
+  User-agent: ClaudeBot
+  ...
+  Disallow: /
+  ```
+
+  Code that splits the output on blank lines and reads one `User-agent` per
+  block breaks. A test that maps each block's first line to the rule on its
+  second line now reads `# AI training crawlers` as the user agent and
+  `User-agent: GPTBot` as its rule. Parse groups instead: every `User-agent`
+  line in a block shares the rules that follow them.
+
+- `AIBotEntry` has new required fields: `name`, `intent`, `robotsToken`,
+  `userAgentPatterns` and `source`. Code that builds its own entries must set
+  them.
+
+- The registry adds Amazonbot and Meta-ExternalAgent (training),
+  Amzn-SearchBot, Meta-WebIndexer and DuckAssistBot (search index), and
+  Meta-ExternalFetcher and Amzn-User (user fetch). `fetchers-only` now blocks
+  the two new training crawlers, and `block-all-ai` blocks all seven.
+
+- `buildRobots()` throws on an unknown `allow` value, and on `disallow-all`
+  combined with `omitWildcard`. `RobotsAllowMode` gains `disallow-all`, so an
+  exhaustive `switch` over it needs the new case.
+
+- Agents without a robots.txt token (Google-Agent, ChatGPT agent, Cursor) live
+  in `AI_AGENTS`, not `AI_BOTS`.
+
+- `userAgent` and `kind` remain on `AIBotEntry`, deprecated in favor of
+  `robotsToken` and `intent`.
 
 ### Build llms.txt files
 

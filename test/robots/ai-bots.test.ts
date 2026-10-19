@@ -1,14 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+  AI_AGENTS,
   AI_BOT_INTENTS,
   AI_BOTS,
-  type AIBotEntry,
   type AIBotIntent,
+  type AIRegistryEntry,
 } from "../../src/robots/ai-bots.js";
 
-const byName = (name: string): AIBotEntry => {
-  const entry = AI_BOTS.find((b) => b.name === name);
-  if (entry === undefined) throw new Error(`missing bot ${name}`);
+const ENTRIES: readonly AIRegistryEntry[] = [...AI_BOTS, ...AI_AGENTS];
+
+const byName = (name: string): AIRegistryEntry => {
+  const entry = ENTRIES.find((b) => b.name === name);
+  if (entry === undefined) throw new Error(`missing entry ${name}`);
   return entry;
 };
 
@@ -20,15 +23,12 @@ describe("AI_BOTS", () => {
         "GPTBot",
         "OAI-SearchBot",
         "ChatGPT-User",
-        "ChatGPT agent",
         "ClaudeBot",
         "Claude-SearchBot",
         "Claude-User",
         "PerplexityBot",
         "Perplexity-User",
         "Google-Extended",
-        "Google-Agent",
-        "Applebot",
         "Applebot-Extended",
         "Meta-ExternalAgent",
         "Meta-ExternalFetcher",
@@ -38,92 +38,33 @@ describe("AI_BOTS", () => {
     );
   });
 
-  // AGENTS.md: each entry cites the operator's documentation in `source`.
-  // ByteDance publishes none we can reach, and an entry backed only by public
-  // crawler directories would let `fetchers-only` block a bot on an unverified
-  // claim.
-  it("carries no entry for Bytespider until ByteDance documents its crawler", () => {
-    const identifiers = AI_BOTS.flatMap((b) => [
-      b.name,
-      b.operator,
-      b.userAgent,
+  // RFC 9309 §2.2.1: a product token is letters, `-` and `_`.
+  it("gives every bot a robots token and mirrors it in userAgent", () => {
+    AI_BOTS.forEach((b) => {
+      expect(b.robotsToken).toMatch(/^[A-Za-z_-]+$/u);
+      expect(b.userAgent).toBe(b.robotsToken);
+    });
+  });
+
+  // Applebot is Apple's general crawler (Spotlight, Siri, Safari search);
+  // Apple's AI training opt-out is the Applebot-Extended token.
+  it("carries Applebot-Extended but no entry for Applebot", () => {
+    expect(ENTRIES.map((b) => b.name)).not.toContain("Applebot");
+    const identifiers = ENTRIES.flatMap((b) => [
       ...(b.robotsToken === undefined ? [] : [b.robotsToken]),
       ...b.userAgentPatterns,
-    ]);
-    expect(identifiers.join("\n")).not.toMatch(/bytespider|bytedance/iu);
+      ...(b.vercelBotName === undefined ? [] : [b.vercelBotName]),
+    ]).map((id) => id.toLowerCase());
+    expect(identifiers).not.toContain("applebot");
+    expect(byName("Applebot-Extended").robotsToken).toBe("Applebot-Extended");
   });
 
-  it("classifies every bot on the intent axis", () => {
+  it("identifies a bot in requests by its own robots token when it has patterns", () => {
     AI_BOTS.forEach((b) => {
-      expect(AI_BOT_INTENTS).toContain(b.intent);
-    });
-  });
-
-  it.each<[string, AIBotIntent]>([
-    ["GPTBot", "training"],
-    ["ClaudeBot", "training"],
-    ["CCBot", "training"],
-    ["Meta-ExternalAgent", "training"],
-    ["Amazonbot", "training"],
-    ["Google-Extended", "training"],
-    ["Applebot-Extended", "training"],
-    ["OAI-SearchBot", "search-index"],
-    ["Claude-SearchBot", "search-index"],
-    ["PerplexityBot", "search-index"],
-    ["Applebot", "search-index"],
-    ["Amzn-SearchBot", "search-index"],
-    ["Meta-WebIndexer", "search-index"],
-    ["DuckAssistBot", "search-index"],
-    ["ChatGPT-User", "user-fetch"],
-    ["Claude-User", "user-fetch"],
-    ["Perplexity-User", "user-fetch"],
-    ["Meta-ExternalFetcher", "user-fetch"],
-    ["Amzn-User", "user-fetch"],
-    ["Google-Agent", "agent"],
-    ["ChatGPT agent", "agent"],
-    ["Cursor", "agent"],
-  ])("classifies %s as %s", (name, intent) => {
-    expect(byName(name).intent).toBe(intent);
-  });
-
-  it("cites an https source for every bot", () => {
-    AI_BOTS.forEach((b) => {
-      expect(b.source).toMatch(/^https:\/\//u);
-    });
-  });
-
-  it("keeps robots tokens, user agent patterns and Vercel names unique", () => {
-    const tokens = AI_BOTS.flatMap((b) =>
-      b.robotsToken === undefined ? [] : [b.robotsToken.toLowerCase()],
-    );
-    const patterns = AI_BOTS.flatMap((b) =>
-      b.userAgentPatterns.map((p) => p.toLowerCase()),
-    );
-    const vercelNames = AI_BOTS.flatMap((b) =>
-      b.vercelBotName === undefined ? [] : [b.vercelBotName],
-    );
-    expect(new Set(tokens).size).toBe(tokens.length);
-    expect(new Set(patterns).size).toBe(patterns.length);
-    expect(new Set(vercelNames).size).toBe(vercelNames.length);
-  });
-
-  it("identifies a bot in requests by its own robots token when it has both", () => {
-    AI_BOTS.forEach((b) => {
-      if (b.robotsToken === undefined || b.userAgentPatterns.length === 0) {
-        return;
-      }
+      if (b.userAgentPatterns.length === 0) return;
       expect(b.userAgentPatterns.map((p) => p.toLowerCase())).toContain(
         b.robotsToken.toLowerCase(),
       );
-    });
-  });
-
-  it("freezes the registry so no consumer can change it for others", () => {
-    expect(Object.isFrozen(AI_BOT_INTENTS)).toBe(true);
-    expect(Object.isFrozen(AI_BOTS)).toBe(true);
-    AI_BOTS.forEach((b) => {
-      expect(Object.isFrozen(b)).toBe(true);
-      expect(Object.isFrozen(b.userAgentPatterns)).toBe(true);
     });
   });
 
@@ -133,21 +74,6 @@ describe("AI_BOTS", () => {
       expect(bot.robotsToken).toBe(name);
       expect(bot.userAgentPatterns).toEqual([]);
     }
-  });
-
-  it("leaves robotsToken out for agents that no robots.txt group addresses", () => {
-    expect(byName("Google-Agent").robotsToken).toBeUndefined();
-    expect(byName("Google-Agent").userAgentPatterns).toEqual(["Google-Agent"]);
-    expect(byName("ChatGPT agent").robotsToken).toBeUndefined();
-    expect(byName("ChatGPT agent").vercelBotName).toBe("chatgpt-operator");
-  });
-
-  it("stores Vercel bot names in the lowercase form the bot_name dimension reports", () => {
-    AI_BOTS.forEach((b) => {
-      if (b.vercelBotName !== undefined) {
-        expect(b.vercelBotName).toBe(b.vercelBotName.toLowerCase());
-      }
-    });
   });
 
   describe("fields kept from 1.2", () => {
@@ -171,12 +97,6 @@ describe("AI_BOTS", () => {
       }
     });
 
-    it("mirrors robotsToken in userAgent, falling back to the name", () => {
-      AI_BOTS.forEach((b) => {
-        expect(b.userAgent).toBe(b.robotsToken ?? b.name);
-      });
-    });
-
     it("folds agent and ai-browser intents into the user-fetch kind", () => {
       AI_BOTS.forEach((b) => {
         expect(b.kind).toBe(
@@ -185,6 +105,128 @@ describe("AI_BOTS", () => {
             : b.intent,
         );
       });
+    });
+  });
+});
+
+describe("AI_AGENTS", () => {
+  it("lists the agents that no robots.txt token addresses", () => {
+    expect(AI_AGENTS.map((a) => a.name)).toEqual([
+      "Google-Agent",
+      "ChatGPT agent",
+      "Cursor",
+    ]);
+    AI_AGENTS.forEach((a) => {
+      expect(a.intent).toBe("agent");
+    });
+  });
+
+  it("gives agents no robots token and none of the 1.2 fields", () => {
+    AI_AGENTS.forEach((a) => {
+      expect("robotsToken" in a).toBe(false);
+      expect("userAgent" in a).toBe(false);
+      expect("kind" in a).toBe(false);
+    });
+  });
+
+  it("shares no name with AI_BOTS", () => {
+    const bots = new Set(AI_BOTS.map((b) => b.name));
+    AI_AGENTS.forEach((a) => {
+      expect(bots.has(a.name)).toBe(false);
+    });
+  });
+
+  it("identifies each agent by its user agent pattern or its Vercel name", () => {
+    expect(byName("Google-Agent").userAgentPatterns).toEqual(["Google-Agent"]);
+    expect(byName("ChatGPT agent").userAgentPatterns).toEqual([]);
+    expect(byName("ChatGPT agent").vercelBotName).toBe("chatgpt-operator");
+    expect(byName("Cursor").vercelBotName).toBe("cursor-server");
+  });
+});
+
+describe("AI_BOTS and AI_AGENTS", () => {
+  // AGENTS.md: each entry cites the operator's documentation in `source`.
+  // ByteDance publishes none we can reach, and an entry backed only by public
+  // crawler directories would let `fetchers-only` block a bot on an unverified
+  // claim.
+  it("carries no entry for Bytespider until ByteDance documents its crawler", () => {
+    const identifiers = ENTRIES.flatMap((b) => [
+      b.name,
+      b.operator,
+      ...(b.robotsToken === undefined ? [] : [b.robotsToken]),
+      ...b.userAgentPatterns,
+    ]);
+    expect(identifiers.join("\n")).not.toMatch(/bytespider|bytedance/iu);
+  });
+
+  it("classifies every bot and agent on the intent axis", () => {
+    ENTRIES.forEach((b) => {
+      expect(AI_BOT_INTENTS).toContain(b.intent);
+    });
+  });
+
+  it.each<[string, AIBotIntent]>([
+    ["GPTBot", "training"],
+    ["ClaudeBot", "training"],
+    ["CCBot", "training"],
+    ["Meta-ExternalAgent", "training"],
+    ["Amazonbot", "training"],
+    ["Google-Extended", "training"],
+    ["Applebot-Extended", "training"],
+    ["OAI-SearchBot", "search-index"],
+    ["Claude-SearchBot", "search-index"],
+    ["PerplexityBot", "search-index"],
+    ["Amzn-SearchBot", "search-index"],
+    ["Meta-WebIndexer", "search-index"],
+    ["DuckAssistBot", "search-index"],
+    ["ChatGPT-User", "user-fetch"],
+    ["Claude-User", "user-fetch"],
+    ["Perplexity-User", "user-fetch"],
+    ["Meta-ExternalFetcher", "user-fetch"],
+    ["Amzn-User", "user-fetch"],
+    ["Google-Agent", "agent"],
+    ["ChatGPT agent", "agent"],
+    ["Cursor", "agent"],
+  ])("classifies %s as %s", (name, intent) => {
+    expect(byName(name).intent).toBe(intent);
+  });
+
+  it("cites an https source for every bot and agent", () => {
+    ENTRIES.forEach((b) => {
+      expect(b.source).toMatch(/^https:\/\//u);
+    });
+  });
+
+  it("keeps names, robots tokens, user agent patterns and Vercel names unique", () => {
+    const names = ENTRIES.map((b) => b.name.toLowerCase());
+    const tokens = AI_BOTS.map((b) => b.robotsToken.toLowerCase());
+    const patterns = ENTRIES.flatMap((b) =>
+      b.userAgentPatterns.map((p) => p.toLowerCase()),
+    );
+    const vercelNames = ENTRIES.flatMap((b) =>
+      b.vercelBotName === undefined ? [] : [b.vercelBotName],
+    );
+    expect(new Set(names).size).toBe(names.length);
+    expect(new Set(tokens).size).toBe(tokens.length);
+    expect(new Set(patterns).size).toBe(patterns.length);
+    expect(new Set(vercelNames).size).toBe(vercelNames.length);
+  });
+
+  it("freezes both registries so no consumer can change them for others", () => {
+    expect(Object.isFrozen(AI_BOT_INTENTS)).toBe(true);
+    expect(Object.isFrozen(AI_BOTS)).toBe(true);
+    expect(Object.isFrozen(AI_AGENTS)).toBe(true);
+    ENTRIES.forEach((b) => {
+      expect(Object.isFrozen(b)).toBe(true);
+      expect(Object.isFrozen(b.userAgentPatterns)).toBe(true);
+    });
+  });
+
+  it("stores Vercel bot names in the lowercase form the bot_name dimension reports", () => {
+    ENTRIES.forEach((b) => {
+      if (b.vercelBotName !== undefined) {
+        expect(b.vercelBotName).toBe(b.vercelBotName.toLowerCase());
+      }
     });
   });
 });

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { AI_BOTS } from "../../src/robots/ai-bots.js";
+import {
+  AI_AGENTS,
+  AI_BOTS,
+  type AIBotEntry,
+  type AIRegistryEntry,
+} from "../../src/robots/ai-bots.js";
 import {
   classifyUserAgent,
   findByVercelBotName,
@@ -44,7 +49,6 @@ describe("classifyUserAgent", () => {
     [USER_AGENTS.oaiSearchBot, "OAI-SearchBot", "search-index"],
     [USER_AGENTS.chatGptUser, "ChatGPT-User", "user-fetch"],
     [USER_AGENTS.perplexityUser, "Perplexity-User", "user-fetch"],
-    [USER_AGENTS.applebot, "Applebot", "search-index"],
     [USER_AGENTS.amazonbot, "Amazonbot", "training"],
     [USER_AGENTS.amznSearchBot, "Amzn-SearchBot", "search-index"],
     [USER_AGENTS.metaExternalAgent, "Meta-ExternalAgent", "training"],
@@ -63,8 +67,9 @@ describe("classifyUserAgent", () => {
     expect(classifyUserAgent("CLAUDE-USER/1.0")?.name).toBe("Claude-User");
   });
 
-  it("classifies every pattern in the registry back to its own bot", () => {
-    for (const bot of AI_BOTS) {
+  it("classifies every pattern in both registries back to its own entry", () => {
+    const entries: readonly AIRegistryEntry[] = [...AI_BOTS, ...AI_AGENTS];
+    for (const bot of entries) {
       for (const pattern of bot.userAgentPatterns) {
         const userAgent = `Mozilla/5.0 (compatible; ${pattern}/1.0)`;
         expect(classifyUserAgent(userAgent)?.name).toBe(bot.name);
@@ -75,6 +80,26 @@ describe("classifyUserAgent", () => {
   it("never attributes a request to a robots-only control token", () => {
     expect(classifyUserAgent(USER_AGENTS.googlebot)).toBeUndefined();
     expect(classifyUserAgent("Google-Extended")).toBeUndefined();
+    expect(classifyUserAgent("Applebot-Extended")).toBeUndefined();
+  });
+
+  // Applebot is Apple's general crawler, not an AI bot; Apple's AI training
+  // opt-out is the robots-only Applebot-Extended token.
+  it("does not attribute Applebot traffic, which has no registry entry", () => {
+    expect(classifyUserAgent(USER_AGENTS.applebot)).toBeUndefined();
+  });
+
+  it("returns the AI_AGENTS entry for an agent, with no robots token", () => {
+    const entry = classifyUserAgent(USER_AGENTS.googleAgent);
+    expect(entry).toBe(AI_AGENTS.find((a) => a.name === "Google-Agent"));
+    expect(entry?.robotsToken).toBeUndefined();
+  });
+
+  it("narrows a match to AIBotEntry once its robots token is checked", () => {
+    const entry = classifyUserAgent(USER_AGENTS.gptBot);
+    if (entry?.robotsToken === undefined) throw new Error("expected a bot");
+    const bot: AIBotEntry = entry;
+    expect(bot.userAgent).toBe("GPTBot");
   });
 
   it("does not attribute a request to Bytespider, which has no registry entry", () => {
@@ -85,8 +110,15 @@ describe("classifyUserAgent", () => {
     ).toBeUndefined();
   });
 
-  it("matches by substring, so text containing Applebot reads as Applebot", () => {
-    expect(classifyUserAgent("Applebot-Extended")?.name).toBe("Applebot");
+  it("matches by substring, so a pattern inside a longer product token counts", () => {
+    expect(classifyUserAgent("NotGPTBot/1.0")?.name).toBe("GPTBot");
+  });
+
+  it("prefers the longest matching pattern over registry order", () => {
+    expect(
+      classifyUserAgent("Mozilla/5.0 (compatible; ClaudeBot; Claude-SearchBot)")
+        ?.name,
+    ).toBe("Claude-SearchBot");
   });
 
   it("returns undefined for browsers, empty and missing headers", () => {
@@ -116,8 +148,15 @@ describe("findByVercelBotName", () => {
     expect(findByVercelBotName(" GPTBot ")?.name).toBe("GPTBot");
   });
 
+  it("returns the AI_AGENTS entry for an agent", () => {
+    expect(findByVercelBotName("cursor-server")).toBe(
+      AI_AGENTS.find((a) => a.name === "Cursor"),
+    );
+  });
+
   it("returns undefined for unknown, empty and missing names", () => {
     expect(findByVercelBotName("googlebot")).toBeUndefined();
+    expect(findByVercelBotName("applebot")).toBeUndefined();
     expect(findByVercelBotName("")).toBeUndefined();
     expect(findByVercelBotName(null)).toBeUndefined();
     expect(findByVercelBotName(undefined)).toBeUndefined();
