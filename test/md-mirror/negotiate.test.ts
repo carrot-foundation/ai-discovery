@@ -68,9 +68,24 @@ describe("prefersMarkdown", () => {
     "*/html;q=1, text/markdown;q=0.5",
     "te*xt/html;q=1, text/markdown;q=0.5",
     "text/ht*ml;q=1, text/markdown;q=0.5",
+    'text/markdown;profile="a, text/html;q=0.5',
+    'text/markdown;profile="a\\',
   ])("keeps HTML when any range in %j is malformed", (accept) => {
     expect(prefersMarkdown(accept)).toBe(false);
   });
+
+  it.each([
+    ['text/markdown;profile="a,b";q=0.9, text/html;q=0.5', true],
+    ['text/markdown;profile="a\\"b,c";q=0.9, text/html;q=0.5', true],
+    ['text/html;profile="a,b";q=0.4, text/markdown;q=0.5', true],
+    ['text/markdown;q=0.1;profile="a;q=0.9;b", text/html;q=0.5', false],
+    ['text/html;q=0.5;profile="a,text/markdown;q=1;b"', false],
+  ])(
+    "keeps a comma or semicolon inside a quoted parameter value in %j",
+    (accept, expected) => {
+      expect(prefersMarkdown(accept)).toBe(expected);
+    },
+  );
 
   it("skips empty list elements", () => {
     expect(prefersMarkdown("text/markdown,, text/html;q=0.5,")).toBe(true);

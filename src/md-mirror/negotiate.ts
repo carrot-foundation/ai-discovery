@@ -17,8 +17,35 @@ const isMediaRange = (type: string, subtype: string): boolean =>
   (type === "*" && subtype === "*") ||
   (NAME.test(type) && (subtype === "*" || NAME.test(subtype)));
 
+// RFC 9110 §5.6.4: a quoted-string may hold `,` and `;`, so a separator only
+// counts outside one. An unterminated quote leaves the text unreadable.
+const splitOutsideQuotes = (
+  input: string,
+  separator: string,
+): string[] | undefined => {
+  const parts: string[] = [];
+  let start = 0;
+  let quoted = false;
+  for (let i = 0; i < input.length; i += 1) {
+    const char = input[i];
+    if (quoted) {
+      if (char === "\\") i += 1;
+      else if (char === '"') quoted = false;
+    } else if (char === '"') {
+      quoted = true;
+    } else if (char === separator) {
+      parts.push(input.slice(start, i));
+      start = i + 1;
+    }
+  }
+  if (quoted) return undefined;
+  parts.push(input.slice(start));
+  return parts;
+};
+
 const parseRange = (part: string): MediaRange | undefined => {
-  const [range = "", ...params] = part.split(";");
+  // Quotes are balanced by now, so the fallback only keeps the type total.
+  const [range = "", ...params] = splitOutsideQuotes(part, ";") ?? [];
   const [type = "", subtype = "", extra] = range
     .trim()
     .toLowerCase()
@@ -72,8 +99,10 @@ export const prefersMarkdown = (accept: string | null | undefined): boolean => {
   if (accept === null || accept === undefined || accept.trim() === "") {
     return false;
   }
+  const parts = splitOutsideQuotes(accept, ",");
+  if (parts === undefined) return false;
   const ranges: MediaRange[] = [];
-  for (const part of accept.split(",")) {
+  for (const part of parts) {
     if (part.trim() === "") continue;
     const range = parseRange(part);
     // Dropping one bad range could zero out text/html and flip the answer,
