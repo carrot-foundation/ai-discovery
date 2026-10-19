@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { AI_BOTS } from "../../src/robots/ai-bots.js";
 import {
   classifyUserAgent,
   findByVercelBotName,
@@ -23,6 +24,12 @@ const USER_AGENTS = {
   metaExternalAgent:
     "meta-externalagent/1.1 (+https://developers.facebook.com/docs/sharing/webmasters/crawler)",
   ccBot: "CCBot/2.0 (https://commoncrawl.org/faq/)",
+  perplexityBot:
+    "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; PerplexityBot/1.0; +https://perplexity.ai/perplexitybot)",
+  duckAssistBot:
+    "DuckAssistBot/1.2; (+http://duckduckgo.com/duckassistbot.html)",
+  amznUser:
+    "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Amzn-User/0.1) Chrome/119.0.6045.214 Safari/537.36",
   googleAgent:
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko; compatible; Google-Agent; +https://developers.google.com/crawling/docs/crawlers-fetchers/google-agent) Chrome/137.0.0.0 Safari/537.36",
   googlebot:
@@ -42,6 +49,9 @@ describe("classifyUserAgent", () => {
     [USER_AGENTS.amznSearchBot, "Amzn-SearchBot", "search-index"],
     [USER_AGENTS.metaExternalAgent, "Meta-ExternalAgent", "training"],
     [USER_AGENTS.ccBot, "CCBot", "training"],
+    [USER_AGENTS.perplexityBot, "PerplexityBot", "search-index"],
+    [USER_AGENTS.duckAssistBot, "DuckAssistBot", "search-index"],
+    [USER_AGENTS.amznUser, "Amzn-User", "user-fetch"],
     [USER_AGENTS.googleAgent, "Google-Agent", "agent"],
   ])("classifies %s", (userAgent, name, intent) => {
     const bot = classifyUserAgent(userAgent);
@@ -53,9 +63,21 @@ describe("classifyUserAgent", () => {
     expect(classifyUserAgent("CLAUDE-USER/1.0")?.name).toBe("Claude-User");
   });
 
+  it("classifies every pattern in the registry back to its own bot", () => {
+    for (const bot of AI_BOTS) {
+      for (const pattern of bot.userAgentPatterns) {
+        const userAgent = `Mozilla/5.0 (compatible; ${pattern}/1.0)`;
+        expect(classifyUserAgent(userAgent)?.name).toBe(bot.name);
+      }
+    }
+  });
+
   it("never attributes a request to a robots-only control token", () => {
     expect(classifyUserAgent(USER_AGENTS.googlebot)).toBeUndefined();
     expect(classifyUserAgent("Google-Extended")).toBeUndefined();
+  });
+
+  it("matches by substring, so text containing Applebot reads as Applebot", () => {
     expect(classifyUserAgent("Applebot-Extended")?.name).toBe("Applebot");
   });
 

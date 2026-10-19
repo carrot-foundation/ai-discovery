@@ -1,3 +1,11 @@
+export const AI_BOT_INTENTS = [
+  "training",
+  "search-index",
+  "user-fetch",
+  "agent",
+  "ai-browser",
+] as const;
+
 /**
  * Why an AI bot reaches a site. One operator usually runs several bots with
  * different intents, so the axis is the request's purpose, not the vendor.
@@ -8,25 +16,15 @@
  * - `agent`: navigates and acts on a site on a person's behalf.
  * - `ai-browser`: a browser with a built-in assistant. Today these send a
  *   stock Chromium user agent, so no request can be attributed to one.
+ *
+ * New intents may appear in minor releases; give exhaustive handling a
+ * default.
  */
-export type AIBotIntent =
-  | "training"
-  | "search-index"
-  | "user-fetch"
-  | "agent"
-  | "ai-browser";
-
-export const AI_BOT_INTENTS: readonly AIBotIntent[] = [
-  "training",
-  "search-index",
-  "user-fetch",
-  "agent",
-  "ai-browser",
-];
+export type AIBotIntent = (typeof AI_BOT_INTENTS)[number];
 
 /**
- * The 1.x classification. `agent` and `ai-browser` fold into `user-fetch`,
- * since both act for a person in real time.
+ * The classification up to 1.2. `agent` and `ai-browser` fold into
+ * `user-fetch`, since both act for a person in real time.
  *
  * @deprecated Use {@link AIBotIntent}.
  */
@@ -59,7 +57,9 @@ export interface AIBotEntry {
   /** Operator documentation this entry was checked against. */
   readonly source: string;
   /**
-   * `robotsToken` when the bot has one, otherwise `name`.
+   * `robotsToken` when the bot has one, otherwise `name`. Bots without a
+   * robots token (agents such as `ChatGPT agent`) carry their display name
+   * here, which is neither a robots.txt token nor a user agent string.
    *
    * @deprecated Use `robotsToken` for robots.txt and `userAgentPatterns` or
    * `vercelBotName` to classify traffic.
@@ -74,11 +74,13 @@ type AIBotDefinition = Omit<AIBotEntry, "userAgent" | "kind">;
 const legacyKind = (intent: AIBotIntent): AIBotKind =>
   intent === "agent" || intent === "ai-browser" ? "user-fetch" : intent;
 
-const bot = (definition: AIBotDefinition): AIBotEntry => ({
-  ...definition,
-  userAgent: definition.robotsToken ?? definition.name,
-  kind: legacyKind(definition.intent),
-});
+const bot = (definition: AIBotDefinition): AIBotEntry =>
+  Object.freeze({
+    ...definition,
+    userAgentPatterns: Object.freeze([...definition.userAgentPatterns]),
+    userAgent: definition.robotsToken ?? definition.name,
+    kind: legacyKind(definition.intent),
+  });
 
 const OPENAI_BOTS = "https://developers.openai.com/api/docs/bots";
 const ANTHROPIC_BOTS =
@@ -96,14 +98,17 @@ const AMAZON_BOTS = "https://developer.amazon.com/amazonbot";
 const VERCEL_BOT_DIRECTORY = "https://vercel.com/docs/bot-management";
 
 /**
- * Canonical registry of AI bots, ordered by intent. Each entry was checked
- * against the operator's own documentation (`source`) on 2026-10-19.
+ * Canonical registry of AI bots, ordered by intent. Each entry was checked on
+ * 2026-10-19 against the documentation in `source`: the operator's own where
+ * it publishes one, otherwise the closest primary reference (Vercel's
+ * verified-bots directory for Cursor, ByteDance's webmaster portal for
+ * Bytespider).
  *
  * Update with care: an entry with a `robotsToken` changes the output of
  * `buildRobots()` for every consumer, and log classification reads
  * `userAgentPatterns` and `vercelBotName`.
  */
-export const AI_BOTS: readonly AIBotEntry[] = [
+export const AI_BOTS: readonly AIBotEntry[] = Object.freeze([
   bot({
     name: "GPTBot",
     operator: "OpenAI",
@@ -171,8 +176,9 @@ export const AI_BOTS: readonly AIBotEntry[] = [
     source: "https://commoncrawl.org/ccbot",
   }),
   bot({
-    // ByteDance documents Bytespider on its Toutiao webmaster platform, the
-    // contact URL its user agent carries. Vercel's directory does not list it.
+    // ByteDance publishes no crawler documentation we could reach; the source
+    // is the contact URL its user agent carries, and the training intent
+    // follows public crawler directories. Vercel's directory does not list it.
     name: "Bytespider",
     operator: "ByteDance",
     intent: "training",
@@ -319,4 +325,4 @@ export const AI_BOTS: readonly AIBotEntry[] = [
     vercelBotName: "cursor-server",
     source: VERCEL_BOT_DIRECTORY,
   }),
-];
+]);

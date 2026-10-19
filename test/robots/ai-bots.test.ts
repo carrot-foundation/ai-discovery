@@ -59,17 +59,21 @@ describe("AI_BOTS", () => {
     ["PerplexityBot", "search-index"],
     ["Applebot", "search-index"],
     ["Amzn-SearchBot", "search-index"],
+    ["Meta-WebIndexer", "search-index"],
+    ["DuckAssistBot", "search-index"],
     ["ChatGPT-User", "user-fetch"],
     ["Claude-User", "user-fetch"],
     ["Perplexity-User", "user-fetch"],
     ["Meta-ExternalFetcher", "user-fetch"],
+    ["Amzn-User", "user-fetch"],
     ["Google-Agent", "agent"],
     ["ChatGPT agent", "agent"],
+    ["Cursor", "agent"],
   ])("classifies %s as %s", (name, intent) => {
     expect(byName(name).intent).toBe(intent);
   });
 
-  it("cites an https operator source for every bot", () => {
+  it("cites an https source for every bot", () => {
     AI_BOTS.forEach((b) => {
       expect(b.source).toMatch(/^https:\/\//u);
     });
@@ -88,6 +92,25 @@ describe("AI_BOTS", () => {
     expect(new Set(tokens).size).toBe(tokens.length);
     expect(new Set(patterns).size).toBe(patterns.length);
     expect(new Set(vercelNames).size).toBe(vercelNames.length);
+  });
+
+  it("identifies a bot in requests by its own robots token when it has both", () => {
+    AI_BOTS.forEach((b) => {
+      if (b.robotsToken === undefined || b.userAgentPatterns.length === 0) {
+        return;
+      }
+      expect(b.userAgentPatterns.map((p) => p.toLowerCase())).toContain(
+        b.robotsToken.toLowerCase(),
+      );
+    });
+  });
+
+  it("freezes the registry so no consumer can change it for others", () => {
+    expect(Object.isFrozen(AI_BOTS)).toBe(true);
+    AI_BOTS.forEach((b) => {
+      expect(Object.isFrozen(b)).toBe(true);
+      expect(Object.isFrozen(b.userAgentPatterns)).toBe(true);
+    });
   });
 
   it("separates robots-only control tokens from user agent patterns", () => {
@@ -113,8 +136,8 @@ describe("AI_BOTS", () => {
     });
   });
 
-  describe("1.x compatibility fields", () => {
-    it("keeps userAgent and kind for every bot the 1.x list shipped", () => {
+  describe("fields kept from 1.2", () => {
+    it("keeps userAgent and kind for every bot 1.2 shipped", () => {
       const legacy: readonly [string, string][] = [
         ["GPTBot", "training"],
         ["OAI-SearchBot", "search-index"],
