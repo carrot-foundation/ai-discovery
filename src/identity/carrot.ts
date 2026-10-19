@@ -14,6 +14,8 @@ export interface CarrotFounder {
 }
 
 export interface CarrotOrganization {
+  /** Stable `@id` every Carrot site already publishes for the organization. */
+  readonly id: string;
   readonly name: string;
   readonly alternateName: string;
   /** Where the organization canonically lives; also the root of its `@id`. */
@@ -26,29 +28,30 @@ export interface CarrotOrganization {
 }
 
 /** Ian McKee, president and co-founder of Carrot. */
-export const CARROT_FOUNDER: CarrotFounder = {
+export const CARROT_FOUNDER: CarrotFounder = Object.freeze({
   id: schemaId(CARROT_SITE_URL, "person", "ian-mckee"),
   name: "Ian McKee",
   jobTitle: "President",
   url: "https://ianmckee.com",
-  sameAs: ["https://ianmckee.substack.com/"],
-};
+  sameAs: Object.freeze(["https://ianmckee.substack.com/"]),
+});
 
 /** The one Carrot entity every Carrot site and `llms.txt` header asserts. */
-export const CARROT_ORGANIZATION: CarrotOrganization = {
+export const CARROT_ORGANIZATION: CarrotOrganization = Object.freeze({
+  id: schemaId(CARROT_SITE_URL, "org"),
   name: "Carrot",
   alternateName: "Carrot Foundation",
   url: CARROT_SITE_URL,
   logo: `${CARROT_SITE_URL}/carrot-brand-originalcolor.svg`,
   description:
     "Carrot is building digital public infrastructure for the low-carbon circular economy.",
-  sameAs: [
+  sameAs: Object.freeze([
     "https://www.linkedin.com/company/carrot-network/",
     "https://www.instagram.com/carrot.eco/",
     "https://www.youtube.com/@carrot-eco",
     "https://github.com/carrot-foundation",
-  ],
-};
+  ]),
+});
 
 /** `Person` JSON-LD node for Carrot's founder. */
 export const carrotFounder = (): Record<string, unknown> =>

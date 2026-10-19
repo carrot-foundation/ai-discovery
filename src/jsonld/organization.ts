@@ -1,6 +1,17 @@
 import { z } from "zod";
 import { schemaId, url } from "./types.js";
 
+// A `Person` node from `person()`, or a `{ "@id" }` reference to one. The
+// input stays a plain record so `person()` output passes as is.
+const founderSchema = z
+  .record(z.string(), z.unknown())
+  .refine(
+    (node) =>
+      (node["@type"] === "Person" && typeof node.name === "string") ||
+      (Object.keys(node).length === 1 && url.safeParse(node["@id"]).success),
+    'must be a Person node from person() or an { "@id" } reference',
+  );
+
 const inputSchema = z.object({
   name: z.string().min(1),
   alternateName: z.string().min(1).optional(),
@@ -8,8 +19,7 @@ const inputSchema = z.object({
   logo: url,
   description: z.string().optional(),
   sameAs: z.array(url).default([]),
-  /** A `Person` node from `person()`, or a `{ "@id" }` reference to one. */
-  founder: z.record(z.string(), z.unknown()).optional(),
+  founder: founderSchema.optional(),
 });
 
 export type OrganizationInput = z.input<typeof inputSchema>;
