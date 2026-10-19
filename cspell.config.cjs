@@ -51,6 +51,7 @@ module.exports = {
     "Cris",
     "Gemini",
     "gptbot",
+    "HTAB",
     "ianmckee",
     "IndexNow",
     "jsonld",

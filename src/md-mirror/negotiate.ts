@@ -6,8 +6,9 @@ interface MediaRange {
 
 // RFC 9110 §5.6.2 token characters except `*`: RFC 6838 §4.2 names never
 // contain one, so a wildcard is only ever a whole component (see isMediaRange).
-// Input is lowercased first.
-const NAME = /^[!#$%&'+.^_`|~0-9a-z-]+$/u;
+// Checked on the text as sent, before lowercasing, with no `i` flag: Unicode
+// case folding would let the Kelvin sign through as `k`.
+const NAME = /^[!#$%&'+.^_`|~0-9A-Za-z-]+$/u;
 
 // RFC 9110 §5.6.2 token: a parameter name, or an unquoted parameter value.
 const TOKEN = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/u;
@@ -18,6 +19,19 @@ const QUOTED_STRING =
 
 // RFC 9110 §12.4.2: a weight is 0 to 1 with at most three decimals.
 const Q_VALUE = /^(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/u;
+
+// RFC 9110 §5.6.3: optional whitespace is SP and HTAB only. String.trim() also
+// strips NBSP, line terminators and other Unicode spaces, which are not OWS.
+const isOws = (char: string | undefined): boolean =>
+  char === " " || char === "\t";
+
+const trimOws = (text: string): string => {
+  let start = 0;
+  let end = text.length;
+  while (start < end && isOws(text[start])) start += 1;
+  while (end > start && isOws(text[end - 1])) end -= 1;
+  return text.slice(start, end);
+};
 
 // RFC 9110 §12.5.1: `*/*`, `type/*` or `type/subtype`.
 const isMediaRange = (type: string, subtype: string): boolean =>
@@ -68,14 +82,11 @@ const parseParameter = (
 const parseRange = (part: string): MediaRange | undefined => {
   // Quotes are balanced by now, so the fallback only keeps the type total.
   const [range = "", ...params] = splitOutsideQuotes(part, ";") ?? [];
-  const [type = "", subtype = "", extra] = range
-    .trim()
-    .toLowerCase()
-    .split("/");
+  const [type = "", subtype = "", extra] = trimOws(range).split("/");
   if (!isMediaRange(type, subtype) || extra !== undefined) return undefined;
   let q = 1;
   for (const raw of params) {
-    const text = raw.trim();
+    const text = trimOws(raw);
     // RFC 9110 §5.6.6 lets a parameter be empty, as after a trailing `;`.
     if (text === "") continue;
     const param = parseParameter(text);
@@ -84,7 +95,8 @@ const parseRange = (part: string): MediaRange | undefined => {
     if (!Q_VALUE.test(param.value)) return undefined;
     q = Number(param.value);
   }
-  return { type, subtype, q };
+  // Both are ASCII by now, so lowercasing only folds A-Z.
+  return { type: type.toLowerCase(), subtype: subtype.toLowerCase(), q };
 };
 
 const specificity = (range: MediaRange, type: string, subtype: string) => {
@@ -120,18 +132,21 @@ const weightOf = (ranges: readonly MediaRange[], mediaType: string): number => {
  * type and subtype alone: media-type parameters other than `q` are ignored,
  * so `text/markdown;profile=x` counts as `text/markdown`. They are still
  * parsed, though: a parameter that is not `name=value` (RFC 9110 §5.6.6)
- * makes the header malformed. A response that varies on this must send
+ * makes the header malformed. Ranges are read as sent: type and subtype take
+ * ASCII token characters only and match case-insensitively on A-Z, and only
+ * SP and HTAB count as whitespace (RFC 9110 §5.6.3), so an NBSP or a Kelvin
+ * sign makes the header malformed. A response that varies on this must send
  * `Vary: Accept`.
  */
 export const prefersMarkdown = (accept: string | null | undefined): boolean => {
-  if (accept === null || accept === undefined || accept.trim() === "") {
+  if (accept === null || accept === undefined || trimOws(accept) === "") {
     return false;
   }
   const parts = splitOutsideQuotes(accept, ",");
   if (parts === undefined) return false;
   const ranges: MediaRange[] = [];
   for (const part of parts) {
-    if (part.trim() === "") continue;
+    if (trimOws(part) === "") continue;
     const range = parseRange(part);
     // Dropping one bad range could zero out text/html and flip the answer,
     // so a header we cannot fully read never asks for Markdown.

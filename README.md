@@ -264,7 +264,10 @@ wildcard alone, a header with any malformed range or a missing header keeps
 HTML. Ranges match on type and subtype alone: parameters other than `q` are
 ignored, so `text/markdown;profile=x` counts as `text/markdown`. They must
 still be well-formed `name=value` pairs, so `text/markdown;foo` is malformed
-and keeps HTML. Send `Vary: Accept` on any response that depends on it.
+and keeps HTML. The header is read as sent: type and subtype take ASCII token
+characters only and match case-insensitively on A-Z, and only space and tab
+count as whitespace, so a non-breaking space or a Kelvin sign is malformed and
+keeps HTML. Send `Vary: Accept` on any response that depends on it.
 
 ### Describe Carrot the same way everywhere
 

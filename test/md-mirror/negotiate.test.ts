@@ -77,6 +77,48 @@ describe("prefersMarkdown", () => {
     expect(prefersMarkdown(accept)).toBe(false);
   });
 
+  // RFC 9110 §5.6.2 and §5.6.3: a range is validated as sent, with ASCII
+  // letters only and optional whitespace limited to SP and HTAB. Unicode case
+  // folding (the Kelvin sign lowercases to `k`) and JavaScript's trim() (which
+  // strips NBSP and more) must not turn text that is not a legal range into one.
+  it.each([
+    ["a Kelvin sign in the subtype", "text/mar\u212Adown, text/html;q=0.5"],
+    ["an NBSP before a range", "\u00A0text/markdown, text/html;q=0.5"],
+    ["an NBSP after a range", "text/markdown\u00A0, text/html;q=0.5"],
+    [
+      "an NBSP before a semicolon",
+      "text/markdown\u00A0;q=0.9, text/html;q=0.5",
+    ],
+    ["an NBSP after a semicolon", "text/markdown;\u00A0q=0.9, text/html;q=0.5"],
+    ["an NBSP after a parameter", "text/markdown;q=0.9\u00A0, text/html;q=0.5"],
+    ["an NBSP as a list element", "text/markdown,\u00A0, text/html;q=0.5"],
+    ["a form feed after a range", "text/markdown\f, text/html;q=0.5"],
+    ["a line feed after a range", "text/markdown\n, text/html;q=0.5"],
+    [
+      "a byte order mark before a range",
+      "\uFEFFtext/markdown, text/html;q=0.5",
+    ],
+    ["an em space after a range", "text/markdown\u2003, text/html;q=0.5"],
+  ])("keeps HTML for %s in %j", (_label, accept) => {
+    expect(prefersMarkdown(accept)).toBe(false);
+  });
+
+  it("trims only SP and HTAB around ranges, parameters and list elements", () => {
+    expect(
+      prefersMarkdown("\ttext/markdown\t;\tq=0.9\t,\t text/html ;q=0.5\t"),
+    ).toBe(true);
+    expect(prefersMarkdown("text/markdown,\t, text/html;q=0.5")).toBe(true);
+    expect(prefersMarkdown(" \t ")).toBe(false);
+  });
+
+  it("matches type and subtype case-insensitively once they are valid", () => {
+    expect(prefersMarkdown("TEXT/HTML, Text/Markdown;q=0.5")).toBe(false);
+    expect(prefersMarkdown("TEXT/*;q=0.1, TEXT/MarkDown;q=0.5")).toBe(true);
+    expect(prefersMarkdown("*/*;q=0.1, TEXT/HTML;q=0.2, TEXT/MARKDOWN")).toBe(
+      true,
+    );
+  });
+
   // RFC 9110 §5.6.6: parameter = token "=" ( token / quoted-string ), with no
   // whitespace around "=". Only an empty parameter (a stray ";") may omit it.
   it.each([
