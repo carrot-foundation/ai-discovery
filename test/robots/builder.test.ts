@@ -78,6 +78,15 @@ describe("buildRobots", () => {
     );
   });
 
+  it.each<RobotsAllowMode>([
+    "all-ai-bots",
+    "fetchers-only",
+    "block-all-ai",
+    "disallow-all",
+  ])("names no Bytespider group when allow=%s", (allow) => {
+    expect(buildRobots({ allow })).not.toMatch(/bytespider/iu);
+  });
+
   it("addresses every bot that has a robots token, and only those", () => {
     const out = buildRobots({ allow: "all-ai-bots", sitemap: SITEMAP });
     const userAgents = parseGroups(out).flatMap((g) => g.userAgents);
@@ -126,7 +135,6 @@ describe("buildRobots", () => {
         "Meta-ExternalAgent",
         "Amazonbot",
         "CCBot",
-        "Bytespider",
       ]),
       group("AI search indexes", [
         "OAI-SearchBot",

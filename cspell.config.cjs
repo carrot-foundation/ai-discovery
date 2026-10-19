@@ -76,12 +76,10 @@ module.exports = {
     "Spotlight",
     "thursday",
     "tldr",
-    "Toutiao",
     "TRC",
     "tsup",
     "tuesday",
     "vitest",
-    "zhanzhang",
   ],
   ignoreRegExpList: ["/https?:\\/\\/[^\\s\"')]+/", "/\\b[0-9a-f]{8,}\\b/i"],
 };

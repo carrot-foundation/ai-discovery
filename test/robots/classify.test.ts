@@ -77,6 +77,14 @@ describe("classifyUserAgent", () => {
     expect(classifyUserAgent("Google-Extended")).toBeUndefined();
   });
 
+  it("does not attribute a request to Bytespider, which has no registry entry", () => {
+    expect(
+      classifyUserAgent(
+        "Mozilla/5.0 (Linux; Android 5.0) AppleWebKit/537.36 (KHTML, like Gecko) Mobile Safari/537.36 (compatible; Bytespider)",
+      ),
+    ).toBeUndefined();
+  });
+
   it("matches by substring, so text containing Applebot reads as Applebot", () => {
     expect(classifyUserAgent("Applebot-Extended")?.name).toBe("Applebot");
   });

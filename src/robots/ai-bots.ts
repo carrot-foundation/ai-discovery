@@ -109,8 +109,9 @@ const VERCEL_BOT_DIRECTORY = "https://vercel.com/docs/bot-management";
  * Canonical registry of AI bots, ordered by intent. Each entry was checked on
  * 2026-10-19 against the documentation in `source`: the operator's own where
  * it publishes one, otherwise the closest primary reference (Vercel's
- * verified-bots directory for Cursor, ByteDance's webmaster portal for
- * Bytespider).
+ * verified-bots directory for Cursor). A bot that only unverified crawler
+ * lists describe stays out: `fetchers-only` would otherwise block it on a
+ * claim nobody checked.
  *
  * Update with care: an entry with a `robotsToken` changes the output of
  * `buildRobots()` for every consumer, and log classification reads
@@ -182,17 +183,6 @@ export const AI_BOTS: readonly AIBotEntry[] = Object.freeze([
     userAgentPatterns: ["CCBot"],
     vercelBotName: "ccbot",
     source: "https://commoncrawl.org/ccbot",
-  }),
-  bot({
-    // ByteDance publishes no crawler documentation we could reach; the source
-    // is the contact URL its user agent carries, and the training intent
-    // follows public crawler directories. Vercel's directory does not list it.
-    name: "Bytespider",
-    operator: "ByteDance",
-    intent: "training",
-    robotsToken: "Bytespider",
-    userAgentPatterns: ["Bytespider"],
-    source: "https://zhanzhang.toutiao.com/",
   }),
   bot({
     name: "OAI-SearchBot",

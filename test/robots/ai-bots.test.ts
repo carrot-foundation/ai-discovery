@@ -34,9 +34,23 @@ describe("AI_BOTS", () => {
         "Meta-ExternalFetcher",
         "Amazonbot",
         "CCBot",
-        "Bytespider",
       ]),
     );
+  });
+
+  // AGENTS.md: each entry cites the operator's documentation in `source`.
+  // ByteDance publishes none we can reach, and an entry backed only by public
+  // crawler directories would let `fetchers-only` block a bot on an unverified
+  // claim.
+  it("carries no entry for Bytespider until ByteDance documents its crawler", () => {
+    const identifiers = AI_BOTS.flatMap((b) => [
+      b.name,
+      b.operator,
+      b.userAgent,
+      ...(b.robotsToken === undefined ? [] : [b.robotsToken]),
+      ...b.userAgentPatterns,
+    ]);
+    expect(identifiers.join("\n")).not.toMatch(/bytespider|bytedance/iu);
   });
 
   it("classifies every bot on the intent axis", () => {
@@ -50,7 +64,6 @@ describe("AI_BOTS", () => {
     ["ClaudeBot", "training"],
     ["CCBot", "training"],
     ["Meta-ExternalAgent", "training"],
-    ["Bytespider", "training"],
     ["Amazonbot", "training"],
     ["Google-Extended", "training"],
     ["Applebot-Extended", "training"],
