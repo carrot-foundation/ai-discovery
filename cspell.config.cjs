@@ -34,6 +34,7 @@ module.exports = {
   language: "en",
   useGitignore: true,
   words: [
+    "crisos",
     "AIBot",
     "AIBots",
     "Amazonbot",

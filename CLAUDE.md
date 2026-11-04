@@ -6,7 +6,7 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 
 `@carrot-foundation/ai-discovery` — public npm package providing AI/LLM discovery primitives (JSON-LD, llms.txt, robots, Markdown mirror) for the Carrot Network. Phase 0: only merge release-triggering changes after the package PR and tarball are reviewed; release-triggering merges to `main` publish automatically after CI succeeds.
 
-Independent repo (not part of Carrot Nx/Turbo monorepos). Node `>=22` (`.nvmrc` 24.13.1), pnpm 10.29.3, ESM-first with CJS dual output. Apache-2.0.
+Independent repo (not part of Carrot Nx/Turbo monorepos). Node `>=24` (`.nvmrc` 24.13.1), pnpm 12.16.1, ESM-first with CJS dual output. Apache-2.0.
 
 ## Commands
 
@@ -78,3 +78,9 @@ Semantic-release runs on `main` via `.github/workflows/release.yml` after the `C
 ## Commits
 
 Conventional Commits enforced by commitlint + Husky `commit-msg`. Standard types only (`feat fix refactor docs test style perf build ci chore revert`); no project-specific scope rules — keep scopes module-aligned (`jsonld`, `robots`, `llms-txt`, `md-mirror`) when useful.
+
+## Worktree setup
+
+Run `/bin/sh scripts/setup-worktree.sh` after creating a worktree. On CrisOS it
+starts or joins one admitted install and checks the pinned runtimes and Git hooks.
+Use `crisos-project-setup status --worktree "$PWD"` to inspect the receipt.
