@@ -6,7 +6,7 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 
 `@carrot-foundation/ai-discovery` — public npm package providing AI/LLM discovery primitives (JSON-LD, llms.txt, robots, Markdown mirror) for the Carrot Network. Phase 0: only merge release-triggering changes after the package PR and tarball are reviewed; release-triggering merges to `main` publish automatically after CI succeeds.
 
-Independent repo (not part of Carrot Nx/Turbo monorepos). Node `>=24` (`.nvmrc` 24.13.1), pnpm 12.16.1, ESM-first with CJS dual output. Apache-2.0.
+Independent repo (not part of Carrot Nx/Turbo monorepos). Node `>=24` (exact version in `.nvmrc`), pnpm 12.16.1, ESM-first with CJS dual output. Apache-2.0.
 
 ## Commands
 

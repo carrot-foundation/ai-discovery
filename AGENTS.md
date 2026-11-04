@@ -9,7 +9,7 @@ LLM discovery primitives for the Carrot Network: JSON-LD, llms.txt, robots, and
 a Markdown mirror.
 
 This is an independent repo, not part of the Carrot Nx or Turbo monorepos. Use
-Node `>=24` (`.nvmrc` currently points at 24.13.1), pnpm 12.16.1, and the
+Node `>=24` (exact version in `.nvmrc`), pnpm 12.16.1, and the
 ESM-first package layout with CJS dual output. The package is Apache-2.0.
 
 Phase 0 status: only merge release-triggering changes after Cristiano has
