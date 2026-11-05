@@ -9,7 +9,7 @@ LLM discovery primitives for the Carrot Network: JSON-LD, llms.txt, robots, and
 a Markdown mirror.
 
 This is an independent repo, not part of the Carrot Nx or Turbo monorepos. Use
-Node `>=22` (`.nvmrc` currently points at 24.13.1), pnpm 10.29.3, and the
+Node `>=24` (exact version in `.nvmrc`), pnpm 12.16.1, and the
 ESM-first package layout with CJS dual output. The package is Apache-2.0.
 
 Phase 0 status: only merge release-triggering changes after Cristiano has
@@ -115,3 +115,9 @@ Use Conventional Commits. Commitlint allows the standard types: `feat`, `fix`,
 `refactor`, `docs`, `test`, `style`, `perf`, `build`, `ci`, `chore`, and
 `revert`. Prefer module-aligned scopes such as `jsonld`, `robots`, `llms-txt`,
 or `md-mirror` when useful.
+
+## Worktree setup
+
+Run `/bin/sh scripts/setup-worktree.sh` after creating a worktree. On CrisOS it
+starts or joins one admitted install and checks the pinned runtimes and Git hooks.
+Use `crisos-project-setup status --worktree "$PWD"` to inspect the receipt.
