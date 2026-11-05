@@ -1,3 +1,6 @@
+# Setup and CI select the exact packageManager pin.
+# Keep one lockfile document for GitHub dependency detection.
+pmOnFail: ignore
 allowBuilds:
   esbuild: true
 verifyDepsBeforeRun: error
